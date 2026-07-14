@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: linkedin-insight-engine
+Version: 0.1.0
+Summary: GCP-native LinkedIn insight drafting and approval pipeline
+Requires-Python: >=3.10
+Provides-Extra: gcp
+Requires-Dist: functions-framework>=3.8.0; extra == "gcp"
+Requires-Dist: google-cloud-firestore>=2.16.0; extra == "gcp"
+Requires-Dist: google-cloud-secret-manager>=2.20.0; extra == "gcp"
+Requires-Dist: google-cloud-logging>=3.10.0; extra == "gcp"
+Requires-Dist: requests>=2.32.0; extra == "gcp"
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0.0; extra == "dev"

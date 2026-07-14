@@ -1,0 +1,44 @@
+{
+  "formats": [
+    {
+      "name": "contrarian_hook",
+      "instructions": "Open with a claim that pushes back on conventional wisdom in the field. Spend the middle unpacking WHY the common view is incomplete, using the supplied facts. Land on a more accurate, nuanced take. Do not manufacture a controversy that isn't supported by the facts — the contrarian angle must come from the actual insight given, not from exaggeration."
+    },
+    {
+      "name": "data_led",
+      "instructions": "Open with the single most specific number or stat from the supplied facts, presented starkly (its own line if it lands better that way). Build the narrative outward from that number: what it means, why it's surprising, what it implies. Do not open with scene-setting — the number IS the hook."
+    },
+    {
+      "name": "mini_case_study",
+      "instructions": "Anchor the entire post around one real project, technology, or event from the supplied facts as a mini narrative: what it is, what happened, what it reveals. Write it like a field note, not a press release summary."
+    },
+    {
+      "name": "myth_vs_reality",
+      "instructions": "State a common misconception related to this topic in one line. Then correct it using the supplied facts, explaining the actual mechanism. The misconception must be one a working engineer would plausibly hold — not a strawman."
+    },
+    {
+      "name": "question_led",
+      "instructions": "Open with one pointed, specific question (not a generic rhetorical one) that the supplied facts can actually answer. Answer it progressively through the body. The closing line can pose a second, different question to the reader."
+    },
+    {
+      "name": "before_after",
+      "instructions": "Structure around a contrast: how this problem was traditionally handled vs. what's changing now, per the supplied facts. Make the contrast concrete (numbers, methods, timelines), not abstract ('better' / 'more efficient')."
+    },
+    {
+      "name": "field_note",
+      "instructions": "Write in a first-person, conversational field-note register — 'Noticed this in [source/context] recently...' — while staying fully grounded in the supplied facts. Looser sentence rhythm than other formats. No corporate phrasing."
+    },
+    {
+      "name": "numbered_takeaways",
+      "instructions": "Structure as 3 short numbered takeaways (not more), each 1-2 lines, each grounded in a distinct fact from the supplied material. Open with one line of framing before the numbers, close with one line tying them together."
+    },
+    {
+      "name": "trend_forecast",
+      "instructions": "Frame around where this is headed and why, grounded strictly in the supplied facts (not speculation beyond what's supported). Clearly separate 'what we know' from 'what this suggests' — don't blur the two."
+    },
+    {
+      "name": "cost_tradeoff",
+      "instructions": "Frame the entire post around a specific cost, resource, or engineering trade-off from the supplied facts. Make the trade-off the spine of the post, not a side mention."
+    }
+  ]
+}

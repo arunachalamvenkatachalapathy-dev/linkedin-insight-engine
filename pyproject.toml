@@ -1,0 +1,21 @@
+[project]
+name = "linkedin-insight-engine"
+version = "0.2.0"
+description = "Automated LinkedIn environment & nature post pipeline powered by Gemini AI"
+requires-python = ">=3.10"
+dependencies = [
+  "google-genai>=1.0.0",
+  "requests>=2.32.0",
+  "python-dotenv>=1.0.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["linkedin_insight_engine*"]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
