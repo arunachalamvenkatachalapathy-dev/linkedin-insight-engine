@@ -1,5 +1,77 @@
 {
-  "pending": {},
-  "history": [],
-  "idea_keywords": {}
+  "pending": {
+    "9aedde5f33cc446f8699e0c3d70463ac": {
+      "id": "dfc0dcf8-3f9d-42ef-81a3-d18bb18d8727",
+      "token": "9aedde5f33cc446f8699e0c3d70463ac",
+      "status": "approved",
+      "created_at": "2026-07-15T02:54:10.443444+00:00",
+      "metadata": {},
+      "draft": {
+        "text": "It struck me today just how fast the world is shifting beneath our feet.\n\nOdisha's Green Energy Leap tathya.in\n\nI remember reading about this exact scenario 10 years ago, and thinking it was a distant problem. But reading the news today about 'Odisha's Green Energy Leap - tathya.in', it's clear the future is already here, right on our doorstep in India.\n\nFrom an operational and resource management perspective, this transition represents a significant shift. We must focus on implementing scalable, sustainable mechanisms\u2014whether through localized grid balancing, enhanced biodiversity corridors, or circular resource recovery\u2014to safeguard our critical ecosystems. The cost of delay is far greater than the cost of early, proactive action.\n\nWe are at a crossroads. Every decision we make about our sustainability, infrastructure, and ecosystems in 2024 compounds into massive shifts for the next generation. We can't afford to just watch this happen.\n\nWhat are your thoughts on this development? Which of these solutions do you think has the most potential? Drop your thoughts in the comments.\n\n#India #ClimateChange #Sustainability #Environment #Nature",
+        "topic_fingerprint": "77d6b0789f9b3409",
+        "image_path": "data\\latest_image.jpg",
+        "keywords": [
+          "sustainability",
+          "biodiversity",
+          "ecosystem"
+        ],
+        "idea_summary": "biodiversity ecosystem sustainability",
+        "entities": {
+          "technology": "sustainability",
+          "organization": "Local Community",
+          "mechanism": "community action"
+        },
+        "image_prompt": "A modern real-world industrial scene, showing a professional technician working in sharp focus on the sustainability, photographed from eye-level, with clear structural details visible. Studio lighting. Photorealistic, editorial photography style, no text overlay, no watermark.",
+        "image_type": "photo-preferred",
+        "sources": [
+          {
+            "title": "Odisha\u2019s Green Energy Leap - tathya.in",
+            "summary": "<a href=\"https://news.google.com/rss/articles/CBMiV0FVX3lxTE1xc3RhMDNpRGt3YzllRkpjZ1FMQ3NHbEVpQTExNEpKbFlLTHlfSjQyQjRnSFJ1WjRNUmQ1NTktdnVQdTJHS3ZUcWlIT1dKZ3JMMXFISDhmWQ?oc=5\" target=\"_blank\">Odisha\u2019s Green Energy Leap</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">tathya.in</font>",
+            "url": "https://news.google.com/rss/articles/CBMiV0FVX3lxTE1xc3RhMDNpRGt3YzllRkpjZ1FMQ3NHbEVpQTExNEpKbFlLTHlfSjQyQjRnSFJ1WjRNUmQ1NTktdnVQdTJHS3ZUcWlIT1dKZ3JMMXFISDhmWQ?oc=5"
+          },
+          {
+            "title": "Koraam Powered by Kosol Energie Strengthens Agricultural Solar Infrastructure with 1200+ Solar Pump Structure Order in Maharashtra - SolarQuarter",
+            "summary": "<a href=\"https://news.google.com/rss/articles/CBMi-gFBVV95cUxNaTFPQkVXOFFGZGlhNHQ0SDVxa0NZeVJ2YUY1WnBwZGR5d3BmbHdDUWdDNGFEci16UG9nQTE5OWo5ZExfVy1FN3hINFFaUjNJT2RWRERGemR2MlZjN2NJc0tEMklhNGlDQkF1YUNmb05WQ3pJV0tzV0dYTzRTQ2hXT2tuRE9WNF9NVHV1QlhHb3cySkFTdTgzc1h3WFJVVVFZQ09LSlpXRzFmMzVXOUR1Yks1QXNWWEl1UlhRcXBrWFB5dUxJbm4ybHJhakszaHBsQy01WmtQUVAxdF85UEY5RHUybENpRW5uREh6d0R0cEdZdUR0SkJtbXZ3?oc=5\" target=\"_blank\">Koraam Powered by Kosol Energie Strengthens Agricultural Solar Infrastructure with 1200+ Solar Pump Structure Order in Maharashtra</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">SolarQuarter</font>",
+            "url": "https://news.google.com/rss/articles/CBMi-gFBVV95cUxNaTFPQkVXOFFGZGlhNHQ0SDVxa0NZeVJ2YUY1WnBwZGR5d3BmbHdDUWdDNGFEci16UG9nQTE5OWo5ZExfVy1FN3hINFFaUjNJT2RWRERGemR2MlZjN2NJc0tEMklhNGlDQkF1YUNmb05WQ3pJV0tzV0dYTzRTQ2hXT2tuRE9WNF9NVHV1QlhHb3cySkFTdTgzc1h3WFJVVVFZQ09LSlpXRzFmMzVXOUR1Yks1QXNWWEl1UlhRcXBrWFB5dUxJbm4ybHJhakszaHBsQy01WmtQUVAxdF85UEY5RHUybENpRW5uREh6d0R0cEdZdUR0SkJtbXZ3?oc=5"
+          },
+          {
+            "title": "Energising a Green Bharat - MillenniumPost",
+            "summary": "<a href=\"https://news.google.com/rss/articles/CBMiekFVX3lxTFAxTFI4OS0xYjF5ZEFaZUUxdmhxYS1EdjZfZUxYOWhVbjRnOW5kRlgweDJuS1k2RFF6d3RIaGNlYURzN3ZNcWctaV9VeWFxYW9Jc1lPeEluZFJTenduM3c3OFRGWkVMVHktUTFOUERPUmI3NEgxd2dERTNR0gF_QVVfeXFMTk53OTBhNjFuSWlQYlhyMTlYMlFpNWJWeWtoUGZhUWViVTNNR0NBZVhCTmQyM25qSnhXbUNLRVRGazJPNlFyVDJRUUdmeGZXTjAtaEZsVExCYkQwV09ab0Y1TTZmRWhPSllSOG5USWktOVZTNUxIT3ZTWHZiVXlSbw?oc=5\" target=\"_blank\">Energising a Green Bharat</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">MillenniumPost</font>",
+            "url": "https://news.google.com/rss/articles/CBMiekFVX3lxTFAxTFI4OS0xYjF5ZEFaZUUxdmhxYS1EdjZfZUxYOWhVbjRnOW5kRlgweDJuS1k2RFF6d3RIaGNlYURzN3ZNcWctaV9VeWFxYW9Jc1lPeEluZFJTenduM3c3OFRGWkVMVHktUTFOUERPUmI3NEgxd2dERTNR0gF_QVVfeXFMTk53OTBhNjFuSWlQYlhyMTlYMlFpNWJWeWtoUGZhUWViVTNNR0NBZVhCTmQyM25qSnhXbUNLRVRGazJPNlFyVDJRUUdmeGZXTjAtaEZsVExCYkQwV09ab0Y1TTZmRWhPSllSOG5USWktOVZTNUxIT3ZTWHZiVXlSbw?oc=5"
+          },
+          {
+            "title": "Jupiter International Bags \u20b91.08 billion MSEDCL Order for Solar Pumps - Electronics For You BUSINESS",
+            "summary": "<a href=\"https://news.google.com/rss/articles/CBMixAFBVV95cUxQSW0tYUpRM3htdS1xMjAzenBxYXhGQWJWSzB2UlFaUDRKYVZNMmJKN1RTWmw2TEZ4dkxHWUdHWmkwUmUtaFpLSktucnkzM1p2ZUJzLVhsTE5KOVBkZW8yT19IR1FZTmpmdW1tWlhhWFNQaEtWLVB4Rm02cXdvTWVuVWMxNGhuS2xCREtad1V0dUFfRVpVbzNta2tmX0d1Z2JFcS1WZ1NVQVNCQkhLajdaM2tFQXZqaVBtbVd1OUpydjlRaG9T?oc=5\" target=\"_blank\">Jupiter International Bags \u20b91.08 billion MSEDCL Order for Solar Pumps</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">Electronics For You BUSINESS</font>",
+            "url": "https://news.google.com/rss/articles/CBMixAFBVV95cUxQSW0tYUpRM3htdS1xMjAzenBxYXhGQWJWSzB2UlFaUDRKYVZNMmJKN1RTWmw2TEZ4dkxHWUdHWmkwUmUtaFpLSktucnkzM1p2ZUJzLVhsTE5KOVBkZW8yT19IR1FZTmpmdW1tWlhhWFNQaEtWLVB4Rm02cXdvTWVuVWMxNGhuS2xCREtad1V0dUFfRVpVbzNta2tmX0d1Z2JFcS1WZ1NVQVNCQkhLajdaM2tFQXZqaVBtbVd1OUpydjlRaG9T?oc=5"
+          },
+          {
+            "title": "From Soil to Sensors: How Artificial Intelligence Is Revolutionising Indian Agriculture - Rising Kashmir",
+            "summary": "<a href=\"https://news.google.com/rss/articles/CBMiywFBVV95cUxPSnE5MWdOMzllbEpheUZzZmVwVlZ5SXN6dEpSNk1NZFhDejg5STNVeWZyS1ZxLVVTcHF6SDlIdU13aEZId0F5cHdWcjNucmlVNUhsLXltRVFFbjJfUkpPRG5LUWxPOFZVOVpYaW1XaTkwSmRGc094ZkV6aUM5dG1XUTBRNzNMeDk3SFZWUkF5WjlUdmV6ZTQwa0FVLUZSU19hQ3VWU3VZb2JsbXZXZVdwMFBFMnNyS3FaR3lvQkwxeVJhcUJtUEdHRjlNbw?oc=5\" target=\"_blank\">From Soil to Sensors: How Artificial Intelligence Is Revolutionising Indian Agriculture</a>&nbsp;&nbsp;<font color=\"#6f6f6f\">Rising Kashmir</font>",
+            "url": "https://news.google.com/rss/articles/CBMiywFBVV95cUxPSnE5MWdOMzllbEpheUZzZmVwVlZ5SXN6dEpSNk1NZFhDejg5STNVeWZyS1ZxLVVTcHF6SDlIdU13aEZId0F5cHdWcjNucmlVNUhsLXltRVFFbjJfUkpPRG5LUWxPOFZVOVpYaW1XaTkwSmRGc094ZkV6aUM5dG1XUTBRNzNMeDk3SFZWUkF5WjlUdmV6ZTQwa0FVLUZSU19hQ3VWU3VZb2JsbXZXZVdwMFBFMnNyS3FaR3lvQkwxeVJhcUJtUEdHRjlNbw?oc=5"
+          }
+        ]
+      }
+    }
+  },
+  "history": [
+    {
+      "id": "dfc0dcf8-3f9d-42ef-81a3-d18bb18d8727",
+      "fingerprint": "77d6b0789f9b3409",
+      "created_at": "2026-07-15T02:54:10.443444+00:00",
+      "keywords": [
+        "sustainability",
+        "biodiversity",
+        "ecosystem"
+      ],
+      "idea_summary": "biodiversity ecosystem sustainability",
+      "status": "approved"
+    }
+  ],
+  "idea_keywords": {
+    "dfc0dcf8-3f9d-42ef-81a3-d18bb18d8727": [
+      "sustainability",
+      "biodiversity",
+      "ecosystem"
+    ]
+  }
 }
