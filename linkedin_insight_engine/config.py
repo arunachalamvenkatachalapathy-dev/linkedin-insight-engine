@@ -95,7 +95,7 @@ class Settings:
     min_post_word_count: int = 140
     max_post_char_count: int = 3000
     banned_image_words: tuple[str, ...] = ("futuristic", "digital", "network", "abstract", "glowing")
-    max_critic_attempts: int = 3
+    max_critic_attempts: int = 5
     duplicate_window_days: int = 90
     rss_sources: tuple[str, ...] = DEFAULT_RSS_SOURCES
     approval_base_url: str = field(default_factory=lambda: os.getenv("APPROVAL_BASE_URL", "http://localhost:8080"))

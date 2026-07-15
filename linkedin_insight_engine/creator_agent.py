@@ -35,6 +35,7 @@ You MUST write the post strictly adhering to the following style guide:
 - **No Bullet Points/Lists**: Write in short, powerful, narrative paragraphs. No "3 things we must learn" or bulleted takeaways.
 - **India Focus**: You MUST explicitly weave India's future, economy, or ecosystems into the story.
 - **Data**: Include at least one specific statistic or verifiable fact from the source, woven naturally into the story.
+- **No Politics**: Strictly avoid all political references, political figures, party names, or government appraisals (e.g., do not praise or appraise actions of the 'Centre', 'Government', BJP, Congress, Modi, etc.). Keep it strictly about technology, science, and nature.
 - **NO buzzwords**: Never use: game-changing, revolutionary, disruptive, cutting-edge, unlock, seamless, paradigm shift, synergy, leverage, holistic, delve.
 - **Length**: Between 900 and 2800 characters (ensuring at least 140 words).
 - **NO emojis in body**: Minimal emoji use (max 2, only at start of lines).
