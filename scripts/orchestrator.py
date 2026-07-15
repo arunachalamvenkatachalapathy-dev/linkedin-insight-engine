@@ -156,6 +156,11 @@ def main():
 
     if publish_result["output"]["status"] == "published":
         log.info(f"Published! post_id={publish_result['output']['post_id']}")
+        
+        # Save post text to a local file for easy verification/debugging
+        with open(os.path.join(ROOT, "state", "latest_published_post.txt"), "w", encoding="utf-8") as f:
+            f.write(f"POST TEXT:\n{post_text}\n\nHASHTAGS:\n{', '.join(copy_result['output']['hashtags'])}\n")
+
         posted_log.append({
             "headline": selected["headline"],
             "topic": topic,

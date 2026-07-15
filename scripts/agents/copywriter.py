@@ -22,6 +22,8 @@ If you want to make a broader point that goes beyond the given facts, explicitly
 
 INFORMATIONAL DENSITY RULE: The post must be highly informative, concrete, and technically substantive. You MUST include at least 2-3 specific, granular metrics, physical measurements, efficiency percentages, or exact numbers from the "Source facts" section. Explain the actual chemical, mechanical, or operational engineering mechanism of the technology in a way that provides genuine value to other practicing engineers. Avoid high-level marketing fluff, empty platitudes, or abstract statements.
 
+HOOK RULE: The very first line of the post (the hook) MUST be a substantive, attention-grabbing sentence of at least 15-25 words. It MUST NOT be a short 2-3 word label, title, or section name (e.g. do not write "Before vs. After:" or "Field Note:" or "Myth vs. Reality:" as the first line of the post on its own). The hook must lead directly into the narrative so that the preview in the LinkedIn feed is highly informative and does not look blank or truncated.
+
 FORMAT RULES:
 - 3-5 relevant hashtags at the end, varied per post, genuinely specific to this post's \
 content (not a recycled generic set)
