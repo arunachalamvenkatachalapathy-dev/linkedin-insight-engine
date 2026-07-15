@@ -160,17 +160,31 @@ class CreatorAgent:
     def _create_locally(self, contexts: tuple[SourceContext, ...], notes: tuple[str, ...]) -> Draft:
         """Fallback local draft creation when Gemini is unavailable."""
         lead = contexts[0]
-        title = _clean_text(lead.title) if lead.title else "A small step for the environment"
-        body_fact = _clean_summary(lead.summary)
+        title = _clean_text(lead.title) if lead.title else "Ecology & Sustainability update"
+        
+        # Compile unique facts from top sources
+        facts = []
+        for ctx in contexts[:3]:
+            fact_sum = _clean_summary(ctx.summary)
+            if fact_sum and len(fact_sum) > 40:
+                facts.append(fact_sum)
+                
+        facts_text = " ".join(facts)
+        if len(facts_text.split()) < 80:
+            facts_text += (
+                " Environmental metrics indicate that localized community restoration, "
+                "decarbonization initiatives, and resource-recovery loops have a compounding "
+                "positive impact on regional ecosystems over time."
+            )
             
         text = (
-            f"It struck me today just how fast the world is shifting beneath our feet.\n\n"
-            f"{body_fact}\n\n"
-            f"I remember reading about this exact scenario 10 years ago, and thinking it was a distant problem. But reading the news today about '{title}', it's clear the future is already here, right on our doorstep in India.\n\n"
-            f"From an operational and resource management perspective, this transition represents a significant shift. We must focus on implementing scalable, sustainable mechanisms—whether through localized grid balancing, enhanced biodiversity corridors, or circular resource recovery—to safeguard our critical ecosystems. The cost of delay is far greater than the cost of early, proactive action.\n\n"
-            f"We are at a crossroads. Every decision we make about our sustainability, infrastructure, and ecosystems in 2024 compounds into massive shifts for the next generation. We can't afford to just watch this happen.\n\n"
-            f"What are your thoughts on this development? Which of these solutions do you think has the most potential? Drop your thoughts in the comments.\n\n"
-            f"#India #ClimateChange #Sustainability #Environment #Nature"
+            f"Insight: The recent development around '{title}' marks a significant milestone in Indian ecological planning.\n\n"
+            f"Fact-base: {facts_text}\n\n"
+            f"From an operational standpoint, implementing sustainable infrastructure and de-risking conservation projects "
+            f"requires deep coordination across stakeholders, local communities, and regulatory bodies. The long-term recovery "
+            f"of our regional ecosystems is directly tied to how proactively we deploy these technological and community models.\n\n"
+            f"Which aspect of this ecological solution do you think is the most challenging to scale? Share your perspective in the comments below.\n\n"
+            f"#India #Sustainability #Environment #Nature"
         )
 
         keywords = _extract_keywords_locally(text)

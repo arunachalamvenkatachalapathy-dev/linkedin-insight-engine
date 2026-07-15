@@ -57,12 +57,16 @@ def run() -> int:
         # 1. Text Generation stage
         if draft is None or last_fail_type == "text":
             print("   👉 Running Creator Agent (Text Drafting)...")
+            import time
+            time.sleep(4)
             draft = creator.create(contexts, notes, avoid_ideas=recent_keywords)
             image_notes = () # Reset image notes on new text draft
 
         # 2. Prompt Engineering stage
         print("   👉 Running Prompt Engineer Agent...")
         # Incorporate image critique notes into prompt engineering if relevant
+        import time
+        time.sleep(4)
         eng_prompt_input = f"{draft.text}\n\nRevision notes: " + "; ".join(image_notes) if image_notes else draft.text
         image_prompt, image_type = prompt_engineer.engineer_prompt(eng_prompt_input, draft.entities)
 
@@ -84,6 +88,8 @@ def run() -> int:
         )
 
         # 4. Audit / Critic Stage
+        import time
+        time.sleep(4)
         critique = critic.evaluate(assembled_draft)
         log_event("critic", "pass" if critique.passed else "fail", attempt=attempt, notes=critique.notes, fail_type=critique.fail_type)
 
@@ -102,6 +108,8 @@ def run() -> int:
 
         # 5. AI Approval Agent evaluation (Pass 2 / Final Check)
         print("\n🔍 Running AI Approval Agent...")
+        import time
+        time.sleep(4)
         report = approval_agent.evaluate(assembled_draft)
         approval_agent.print_report(report)
 
