@@ -85,13 +85,10 @@ def run(copywriter_output: dict, out_path: str = "state/latest_image.png") -> di
     result = _generate_prompt(copywriter_output)
     prompt = result["output"]["image_prompt"]
 
-    if os.environ.get("OPENAI_API_KEY"):
-        image_path = _render_image_openai(prompt, out_path)
-    elif os.environ.get("STABILITY_API_KEY"):
-        image_path = _render_image_stability(prompt, out_path)
-    else:
-        # Fallback to free Pollinations AI
-        image_path = _render_image_pollinations(prompt, out_path)
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    if not openai_key:
+        raise ValueError("OPENAI_API_KEY environment variable is required for strict DALL-E 3 image generation.")
 
+    image_path = _render_image_openai(prompt, out_path)
     result["output"]["image_path"] = image_path
     return result
