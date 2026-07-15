@@ -8,8 +8,7 @@
     "cautiously optimistic — acknowledges real progress without hype"
   ],
   "length_bands": [
-    {"name": "short", "min_words": 70, "max_words": 110},
-    {"name": "medium", "min_words": 130, "max_words": 180},
-    {"name": "long", "min_words": 200, "max_words": 260}
+    {"name": "medium", "min_words": 155, "max_words": 210},
+    {"name": "long", "min_words": 220, "max_words": 300}
   ]
 }

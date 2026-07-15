@@ -91,7 +91,7 @@ STYLE_PROFILE = """\
 @dataclass(frozen=True)
 class Settings:
     char_limit: int = 3000
-    char_limit_min: int = 400
+    char_limit_min: int = 900
     max_critic_attempts: int = 3
     duplicate_window_days: int = 90
     rss_sources: tuple[str, ...] = DEFAULT_RSS_SOURCES

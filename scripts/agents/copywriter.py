@@ -20,6 +20,8 @@ GROUNDING RULE (non-negotiable): Every factual claim, number, named project, or 
 CRITICAL: Do NOT present any analytical assumptions, inferred technologies, or technical specs from the "Insight" (Lateral Thinker) section as direct facts or requirements of the project. If you mention them, you MUST explicitly frame them as possibilities, examples, or your own engineering commentary (e.g., "This could mean using...", "Practitioners might look to...", "One possible route is..."). Never claim a technology is required, mandated, or used unless it is explicitly listed in the "Source facts" section.
 If you want to make a broader point that goes beyond the given facts, explicitly frame it as interpretation/opinion (e.g. "which suggests...", "the open question is...") rather than stating it as fact.
 
+INFORMATIONAL DENSITY RULE: The post must be highly informative, concrete, and technically substantive. You MUST include at least 2-3 specific, granular metrics, physical measurements, efficiency percentages, or exact numbers from the "Source facts" section. Explain the actual chemical, mechanical, or operational engineering mechanism of the technology in a way that provides genuine value to other practicing engineers. Avoid high-level marketing fluff, empty platitudes, or abstract statements.
+
 FORMAT RULES:
 - 3-5 relevant hashtags at the end, varied per post, genuinely specific to this post's \
 content (not a recycled generic set)
