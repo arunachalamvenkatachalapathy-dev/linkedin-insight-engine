@@ -137,6 +137,9 @@ class JsonFileStateStore:
                 "image_path": draft.image_path,
                 "keywords": list(draft.keywords),
                 "idea_summary": draft.idea_summary,
+                "entities": draft.entities,
+                "image_prompt": draft.image_prompt,
+                "image_type": draft.image_type,
                 "sources": [
                     {"title": s.title, "summary": s.summary, "url": s.url}
                     for s in draft.sources
@@ -223,6 +226,9 @@ def _json_to_approval(entry: dict[str, Any]) -> PendingApproval:
             keywords=tuple(draft_data.get("keywords", [])),
             idea_summary=draft_data.get("idea_summary", ""),
             sources=sources,
+            entities=draft_data.get("entities", {}),
+            image_prompt=draft_data.get("image_prompt", ""),
+            image_type=draft_data.get("image_type", "photo-preferred"),
         ),
         status=PostStatus(entry["status"]),
         created_at=created_at,

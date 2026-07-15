@@ -3,10 +3,10 @@ name = "linkedin-insight-engine"
 version = "0.2.0"
 description = "Automated LinkedIn environment & nature post pipeline powered by Gemini AI"
 requires-python = ">=3.10"
-dependencies = [
   "google-genai>=1.0.0",
   "requests>=2.32.0",
   "python-dotenv>=1.0.1",
+  "pillow>=10.0.0",
 ]
 
 [tool.setuptools.packages.find]

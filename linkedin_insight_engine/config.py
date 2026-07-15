@@ -92,6 +92,9 @@ STYLE_PROFILE = """\
 class Settings:
     char_limit: int = 3000
     char_limit_min: int = 900
+    min_post_word_count: int = 140
+    max_post_char_count: int = 3000
+    banned_image_words: tuple[str, ...] = ("futuristic", "digital", "network", "abstract", "glowing")
     max_critic_attempts: int = 3
     duplicate_window_days: int = 90
     rss_sources: tuple[str, ...] = DEFAULT_RSS_SOURCES

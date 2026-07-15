@@ -37,12 +37,16 @@ class Draft:
     image_path: str = ""
     keywords: tuple[str, ...] = ()
     idea_summary: str = ""
+    entities: dict[str, str] = field(default_factory=dict)
+    image_prompt: str = ""
+    image_type: str = "photo-preferred"
 
 
 @dataclass(frozen=True)
 class Critique:
     passed: bool
     notes: tuple[str, ...] = ()
+    fail_type: str = "text"
 
 
 @dataclass(frozen=True)

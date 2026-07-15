@@ -8,21 +8,19 @@ import re
 import time
 
 from .config import CTA_OPTIONS, ENVIRONMENT_TOPICS, Settings, settings
-from .image_generator import generate_image
 from .logger import log_event
 from .models import Draft, SourceContext
 
 
 DRAFT_PROMPT = """\
 You are a leading Indian environmental thought-leader and sustainability advocate on LinkedIn.
-Write a highly authentic, engaging, and viral LinkedIn post based on the following source material.
+Write a highly authentic, engaging, and viral LinkedIn post based on the following source material, and extract structured entities.
 
 ## Source Material
 {sources}
 
 ## The Narrative Story Framework
 To ensure the post feels human, vulnerable, and engaging, you MUST strictly follow this narrative structure:
-
 1. **A - Attention (The Hook)**: Your first 1-2 lines MUST make people stop scrolling. Use a bold claim, a surprising realization, or an emotional observation (max 150 chars). Do NOT start with generic greetings.
 2. **S - Story (The Narrative)**: Frame the news as a personal story or a reflection. DO NOT write a lecture or a list of "takeaways". Write it as an unfolding story. "I remember when...", "It struck me today that...", or "We are living through a moment...". 
 3. **P - Personal Connection**: Why does this matter deeply to you and to India? Be vulnerable, passionate, and human. Speak from the "I" or "We" perspective.
@@ -38,21 +36,28 @@ You MUST write the post strictly adhering to the following style guide:
 - **India Focus**: You MUST explicitly weave India's future, economy, or ecosystems into the story.
 - **Data**: Include at least one specific statistic or verifiable fact from the source, woven naturally into the story.
 - **NO buzzwords**: Never use: game-changing, revolutionary, disruptive, cutting-edge, unlock, seamless, paradigm shift, synergy, leverage, holistic, delve.
-- **Length**: Between 400 and 2800 characters.
+- **Length**: Between 900 and 2800 characters (ensuring at least 140 words).
 - **NO emojis in body**: Minimal emoji use (max 2, only at start of lines).
+
+## Entity Extraction
+Identify the following specific entities from the source material:
+- **technology**: The specific real-world named technology or system mentioned (e.g. "dynamic line rating sensor", "solid state sodium battery"). Never use a generic category like "renewable energy" or "batteries".
+- **organization**: The specific company, academic lab, or government agency behind the technology or event (e.g. "Department of Energy", "Reliance Industries").
+- **mechanism**: The specific operational, physical, chemical, or thermodynamic mechanism described (e.g. "real-time thermal conductor load monitoring").
 
 ## Previous Ideas to AVOID (do NOT repeat these themes)
 {avoid_ideas}
 
-Respond with ONLY the post text. No explanations, no metadata.
-"""
-
-KEYWORD_PROMPT = """\
-Extract exactly 5 unique keywords from the following LinkedIn post that capture the core topic and idea.
-Return ONLY a JSON array of 5 lowercase strings. Example: ["coral reef", "ocean warming", "marine biodiversity", "conservation", "pacific"]
-
-Post:
-{text}
+You MUST return a valid JSON object matching this structure:
+{{
+  "post_text": "...",
+  "keywords": ["kw1", "kw2", "kw3", "kw4", "kw5"],
+  "entities": {{
+    "technology": "...",
+    "organization": "...",
+    "mechanism": "..."
+  }}
+}}
 """
 
 
@@ -79,6 +84,7 @@ class CreatorAgent:
         api_key: str,
     ) -> Draft:
         from google import genai
+        from google.genai import types
 
         client = genai.Client(api_key=api_key)
 
@@ -107,21 +113,30 @@ class CreatorAgent:
         for attempt in range(3):
             try:
                 response = client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash",
                     contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json"
+                    )
                 )
-                draft_text = (response.text or "").strip()
-                if not draft_text:
+                response_text = (response.text or "").strip()
+                if not response_text:
                     raise ValueError("Empty response from Gemini")
 
-                # Extract keywords
-                keywords = self._extract_keywords(client, draft_text)
+                res_json = json.loads(response_text)
+                draft_text = res_json.get("post_text", "").strip()
+                keywords = tuple(str(k).lower().strip() for k in res_json.get("keywords", [])[:5])
+                entities = res_json.get("entities", {})
+                
+                # Fill missing entities with defaults if model failed to extract them
+                if "technology" not in entities:
+                    entities["technology"] = "sustainability"
+                if "organization" not in entities:
+                    entities["organization"] = "Environmental Community"
+                if "mechanism" not in entities:
+                    entities["mechanism"] = "green transitions"
+
                 idea_summary = " ".join(sorted(keywords)[:3]) if keywords else ""
-
-                # Generate image
-                image_topic = contexts[0].title if contexts else "nature environment"
-                image_path = generate_image(image_topic, api_key)
-
                 fingerprint = sha256(draft_text[:200].lower().encode("utf-8")).hexdigest()[:16]
 
                 log_event("creator", "gemini-draft-created", chars=len(draft_text), keywords=list(keywords))
@@ -130,9 +145,10 @@ class CreatorAgent:
                     text=draft_text,
                     topic_fingerprint=fingerprint,
                     sources=contexts,
-                    image_path=image_path,
+                    image_path="", # delegated to prompt engineer + image agent
                     keywords=keywords,
                     idea_summary=idea_summary,
+                    entities=entities,
                 )
             except Exception as exc:
                 log_event("creator", "gemini-retry", attempt=attempt + 1, error=str(exc)[:200])
@@ -140,25 +156,6 @@ class CreatorAgent:
 
         log_event("creator", "gemini-failed-fallback-local")
         return self._create_locally(contexts, notes)
-
-    def _extract_keywords(self, client: object, text: str) -> tuple[str, ...]:
-        """Extract keywords from draft text using Gemini."""
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=KEYWORD_PROMPT.format(text=text),
-            )
-            response_text = (response.text or "").strip()
-            # Parse JSON array from response
-            match = re.search(r"\[.*?\]", response_text, re.DOTALL)
-            if match:
-                keywords = json.loads(match.group())
-                return tuple(str(k).lower().strip() for k in keywords[:5])
-        except Exception as exc:
-            log_event("creator", "keyword-extraction-failed", error=str(exc)[:100])
-
-        # Fallback: extract basic keywords locally
-        return _extract_keywords_locally(text)
 
     def _create_locally(self, contexts: tuple[SourceContext, ...], notes: tuple[str, ...]) -> Draft:
         """Fallback local draft creation when Gemini is unavailable."""
@@ -170,25 +167,29 @@ class CreatorAgent:
             f"It struck me today just how fast the world is shifting beneath our feet.\n\n"
             f"{body_fact}\n\n"
             f"I remember reading about this exact scenario 10 years ago, and thinking it was a distant problem. But reading the news today about '{title}', it's clear the future is already here, right on our doorstep in India.\n\n"
+            f"From an operational and resource management perspective, this transition represents a significant shift. We must focus on implementing scalable, sustainable mechanisms—whether through localized grid balancing, enhanced biodiversity corridors, or circular resource recovery—to safeguard our critical ecosystems. The cost of delay is far greater than the cost of early, proactive action.\n\n"
             f"We are at a crossroads. Every decision we make about our sustainability, infrastructure, and ecosystems in 2024 compounds into massive shifts for the next generation. We can't afford to just watch this happen.\n\n"
-            f"What are your thoughts on this development?\n\n"
-            "#India #ClimateChange #Sustainability #Environment #Nature"
+            f"What are your thoughts on this development? Which of these solutions do you think has the most potential? Drop your thoughts in the comments.\n\n"
+            f"#India #ClimateChange #Sustainability #Environment #Nature"
         )
 
         keywords = _extract_keywords_locally(text)
         fingerprint = sha256(title.lower().encode("utf-8")).hexdigest()[:16]
         
-        # Generate image
-        image_topic = " ".join(sorted(keywords)[:3]) if keywords else "environment sustainability india"
-        image_path = generate_image(image_topic, self.config.gemini_api_key)
+        entities = {
+            "technology": keywords[0] if len(keywords) > 0 else "conservation",
+            "organization": "Local Community",
+            "mechanism": "community action"
+        }
 
         return Draft(
             text=text,
             topic_fingerprint=fingerprint,
             sources=contexts,
-            image_path=image_path,
+            image_path="", # delegated to prompt engineer + image agent
             keywords=keywords,
             idea_summary=" ".join(sorted(keywords)[:3]),
+            entities=entities,
         )
 
 
