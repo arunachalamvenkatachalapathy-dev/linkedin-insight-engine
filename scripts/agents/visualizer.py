@@ -109,6 +109,14 @@ def run(copywriter_output: dict, out_path: str = "state/latest_image.png") -> di
     result = _generate_prompt(copywriter_output)
     prompt = result["output"]["image_prompt"]
 
+    # Append premium photographic style guidelines to ensure professional, realistic graphics
+    style_suffix = (
+        ", professional editorial corporate photography, architectural digest style, "
+        "clean industrial design, volumetric lighting, award-winning composition, "
+        "shot on 35mm lens, hyper-realistic, 8k resolution, no text, no watermark"
+    )
+    prompt = f"{prompt.rstrip('.')}{style_suffix}"
+
     image_path = ""
     # 1. Try OpenAI DALL-E 3 if key is present
     if os.environ.get("OPENAI_API_KEY"):
