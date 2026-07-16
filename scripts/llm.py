@@ -22,14 +22,15 @@ MODEL = os.environ.get("ECOPULSE_MODEL")
 def _extract_json(text: str) -> dict:
     """Strip markdown code fences / stray prose and parse the first JSON object."""
     text = text.strip()
-    text = re.sub(r"^```(json)?", "", text.strip())
-    text = re.sub(r"```$", "", text.strip())
+    text = re.sub(r"^```(?:json)?\n?", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\n?```$", "", text)
     text = text.strip()
-    # Fallback: find the first {...} block if there's leading/trailing prose
-    if not text.startswith("{"):
-        match = re.search(r"\{.*\}", text, re.DOTALL)
-        if match:
-            text = match.group(0)
+    
+    # Extract only the balanced/outermost JSON block to ignore stray prose
+    match = re.search(r"(\{.*\})", text, re.DOTALL)
+    if match:
+        text = match.group(1)
+        
     return json.loads(text)
 
 

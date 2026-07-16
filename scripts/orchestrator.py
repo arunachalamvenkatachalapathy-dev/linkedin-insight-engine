@@ -22,7 +22,7 @@ if os.path.exists(".env"):
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from agents import scout, curator, lateral_thinker, copywriter, fact_checker, visualizer, publisher  # noqa: E402
+from agents import scout, curator, lateral_thinker, copywriter, fact_checker, visualizer, publisher, prompt_engineer  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("ecopulse")
@@ -86,7 +86,8 @@ def main():
     import time
 
     log.info("Running Scout...")
-    scout_result = scout.run(topic)
+    scout_prompts = prompt_engineer.generate_prompt_for_agent("scout", topic)
+    scout_result = scout.call_agent(scout_prompts["generated_system_prompt"], scout_prompts["generated_user_prompt"], use_web_search=True)
     log.info(f"Scout found {len(scout_result['output']['findings'])} items.")
 
     time.sleep(8)
@@ -101,11 +102,23 @@ def main():
 
     time.sleep(8)
     log.info("Running Lateral Thinker...")
-    lateral_result = lateral_thinker.run(selected)
+    lat_prompts = prompt_engineer.generate_prompt_for_agent("lateral_thinker", topic, {"selected_idea": selected})
+    lateral_result = lateral_thinker.call_agent(lat_prompts["generated_system_prompt"], lat_prompts["generated_user_prompt"], use_web_search=False)
 
     def write_post():
         time.sleep(8)
-        result = copywriter.run(lateral_result, selected, format_spec, tone, length_band)
+        copy_prompts = prompt_engineer.generate_prompt_for_agent(
+            "copywriter",
+            topic,
+            {
+                "lateral_output": lateral_result,
+                "source_facts": selected,
+                "format": format_spec,
+                "tone": tone,
+                "length": length_band
+            }
+        )
+        result = copywriter.call_agent(copy_prompts["generated_system_prompt"], copy_prompts["generated_user_prompt"], use_web_search=False)
         return result["output"]["post_text"], result
 
     log.info("Running Copywriter...")
@@ -136,8 +149,17 @@ def main():
 
     time.sleep(8)
     log.info("Running Visualizer...")
-    visual_result = visualizer.run(copy_result["output"], out_path=IMAGE_PATH)
-    image_path = visual_result["output"]["image_path"]
+    vis_prompts = prompt_engineer.generate_prompt_for_agent("visualizer", topic, {"copywriter_output": copy_result["output"]})
+    visual_result = visualizer.call_agent(vis_prompts["generated_system_prompt"], vis_prompts["generated_user_prompt"], use_web_search=False)
+    prompt = visual_result["output"]["image_prompt"]
+    
+    style_suffix = (
+        ", crisp DSLR architectural photography, corporate editorial style, "
+        "natural sunlight, sharp focus on physical engineering media, "
+        "real-world environmental aesthetic, no 3D renders, no cartoons, no text"
+    )
+    prompt = f"{prompt.rstrip('.')}{style_suffix}"
+    image_path = visualizer._render_image_pollinations(prompt, IMAGE_PATH)
 
     if DRY_RUN:
         log.info("DRY RUN — not publishing. Final post preview:\n")

@@ -94,9 +94,9 @@ def _render_image_imagen(prompt: str, out_path: str) -> str:
 
 
 def _render_image_pollinations(prompt: str, out_path: str) -> str:
-    """Free fallback image generator using Pollinations AI."""
+    """Free fallback image generator using Pollinations AI (Stable Diffusion model)."""
     encoded_query = urllib.parse.quote(prompt)
-    url = f"https://image.pollinations.ai/prompt/{encoded_query}?width=1024&height=1024&nologo=true&model=flux"
+    url = f"https://image.pollinations.ai/prompt/{encoded_query}?width=1024&height=1024&nologo=true&model=stable-diffusion"
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     with urllib.request.urlopen(req, timeout=45) as response:
         image_bytes = response.read()
