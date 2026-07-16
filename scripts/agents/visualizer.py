@@ -111,9 +111,9 @@ def run(copywriter_output: dict, out_path: str = "state/latest_image.png") -> di
 
     # Append premium photographic style guidelines to ensure professional, realistic graphics
     style_suffix = (
-        ", professional editorial corporate photography, architectural digest style, "
-        "clean industrial design, volumetric lighting, award-winning composition, "
-        "shot on 35mm lens, hyper-realistic, 8k resolution, no text, no watermark"
+        ", crisp DSLR architectural photography, corporate editorial style, "
+        "natural sunlight, sharp focus on physical engineering media, "
+        "real-world environmental aesthetic, no 3D renders, no cartoons, no text"
     )
     prompt = f"{prompt.rstrip('.')}{style_suffix}"
 

@@ -55,6 +55,8 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
                 max_tokens=max_tokens,
                 system=system_prompt,
                 messages=messages,
+                frequency_penalty=0.75,
+                presence_penalty=0.4,
             )
             if tools:
                 kwargs["tools"] = tools
@@ -64,6 +66,16 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
                 full_text = "\n".join(text_parts)
                 return _extract_json(full_text)
             except Exception as e:
+                if "frequency_penalty" in kwargs:
+                    del kwargs["frequency_penalty"]
+                    del kwargs["presence_penalty"]
+                    try:
+                        response = client.messages.create(**kwargs)
+                        text_parts = [block.text for block in response.content if block.type == "text"]
+                        full_text = "\n".join(text_parts)
+                        return _extract_json(full_text)
+                    except Exception as retry_err:
+                        e = retry_err
                 if attempt < max_retries:
                     messages.append({"role": "assistant", "content": full_text if 'full_text' in locals() else str(e)})
                     messages.append({
@@ -94,6 +106,8 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
                 "generationConfig": {
                     "maxOutputTokens": max_tokens,
                     "temperature": 0.7 + (attempt * 0.1),
+                    "frequencyPenalty": 0.75,
+                    "presencePenalty": 0.4,
                     "thinkingConfig": {
                         "thinkingBudget": 0
                     }
@@ -118,6 +132,19 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
                     reason = candidate.get("finishReason", "UNKNOWN")
                     raise KeyError(f"No content found (Finish Reason: {reason})")
             except Exception as e:
+                if "frequencyPenalty" in payload.get("generationConfig", {}):
+                    del payload["generationConfig"]["frequencyPenalty"]
+                    del payload["generationConfig"]["presencePenalty"]
+                    try:
+                        resp = requests.post(url, json=payload, timeout=60)
+                        resp.raise_for_status()
+                        res_data = resp.json()
+                        candidate = res_data["candidates"][0]
+                        if "content" in candidate and "parts" in candidate["content"]:
+                            text = candidate["content"]["parts"][0]["text"]
+                            return _extract_json(text)
+                    except Exception as retry_err:
+                        e = retry_err
                 # Catch rate limits (429) and temporary server overloads (502, 503, 504) and sleep before retrying
                 is_retryable = False
                 if isinstance(e, requests.exceptions.HTTPError):

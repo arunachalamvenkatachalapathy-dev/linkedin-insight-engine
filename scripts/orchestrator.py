@@ -51,8 +51,8 @@ def save_json(path, data):
 
 
 def pick_topic(topics: list, posted_log: list) -> str:
-    recent_headlines = " ".join(e.get("headline", "").lower() for e in posted_log[-5:])
-    candidates = [t for t in topics if t.lower() not in recent_headlines] or topics
+    recent_topics = [e.get("topic", "").lower() for e in posted_log[-8:]]
+    candidates = [t for t in topics if t.lower() not in recent_topics] or topics
     return random.choice(candidates)
 
 

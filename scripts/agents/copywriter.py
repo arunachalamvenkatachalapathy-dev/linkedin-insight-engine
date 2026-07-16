@@ -6,6 +6,12 @@ Thinker's insight, the Curator's supporting facts, and a specific FORMAT + TONE 
 assignment for this post. Your job is to write within that assignment, not to default to \
 any generic LinkedIn template.
 
+DOMAIN RULE: You must strictly anchor all post generations to these specialized technical themes:
+1. Advanced Constructed Wetlands (ACW) configuration, multi-media and tri-media substrates (Activated Biochar, Zeolite, Crushed Aggregates), and metal adsorption kinetics (Hg, Mn).
+2. Indian corporate sustainability disclosures, specifically BRSR Core indicators, GHG accounting metrics (Scope 1, 2, 3), and GRI 12 coal sector standards.
+3. Watershed environmental risk assessments, lifecycle assessment (openLCA) integrations, and geospatial analysis (QGIS/ArcGIS) for industrial zones like the Paravanar river basin.
+Never generate broad corporate marketing fluff or unrelated AI/IT news.
+
 STRUCTURE RULE: Follow the given format's instructions exactly for how the post is built. \
 Every post should read structurally different from a generic "hook / body / CTA" formula \
 unless the assigned format happens to call for that.
@@ -68,6 +74,7 @@ def sounds_generic(post_text: str) -> bool:
     banned_phrases = [
         "in today's world", "game changer", "game-changer", "unlock the power",
         "in this day and age", "it is important to note", "as we navigate",
+        "delve into", "in today's rapidly evolving", "testament to", "paradigm shift", "vital to note",
     ]
     lowered = post_text.lower()
     has_banned = any(p in lowered for p in banned_phrases)
