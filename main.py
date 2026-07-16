@@ -1,6 +1,13 @@
-"""LinkedIn Insight Engine — Automated environment & nature post pipeline."""
+import sys
+import os
 
-from linkedin_insight_engine.main_draft import run
+# Align root paths for EcoPulse orchestrator execution
+ROOT = os.path.dirname(os.path.abspath(__file__))
+SCRIPTS_DIR = os.path.join(ROOT, "scripts")
+if SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, SCRIPTS_DIR)
+
+from scripts.orchestrator import main
 
 if __name__ == "__main__":
-    raise SystemExit(run())
+    main()
