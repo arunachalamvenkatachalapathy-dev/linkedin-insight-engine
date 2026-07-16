@@ -178,11 +178,12 @@ class CreatorAgent:
                 "positive impact on regional ecosystems over time."
             )
             
+        short_title = title[:40] + "..." if len(title) > 40 else title
         text = (
-            f"Insight: The recent development around '{title}' marks a significant milestone in Indian ecological planning.\n\n"
+            f"Insight: The recent development around '{short_title}' marks a milestone in Indian planning.\n\n"
             f"Fact-base: {facts_text}\n\n"
-            f"From an operational standpoint, implementing sustainable infrastructure and de-risking conservation projects "
-            f"requires deep coordination across stakeholders, local communities, and regulatory bodies. Studies show that these localized decarbonization "
+            f"From my perspective, as we implement sustainable infrastructure and de-risk conservation projects, "
+            f"we require deep coordination across stakeholders, local communities, and regulatory bodies. Studies show that these localized decarbonization "
             f"initiatives can cut energy intensity by 15% and improve regional ecological resilience scores by 2.4x over time.\n\n"
             f"Which aspect of this ecological solution do you think is the most challenging to scale? Share your perspective in the comments below.\n\n"
             f"#India #Sustainability #Environment #Nature"
