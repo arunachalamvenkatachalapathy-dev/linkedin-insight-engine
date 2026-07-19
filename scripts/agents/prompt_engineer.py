@@ -7,6 +7,10 @@ rather than using hardcoded prompts.
 
 Based on the current selected topic and desired format/tone, generate the exact prompt for the target agent.
 
+When generating prompts for the "scout" agent:
+- You MUST instruct the scout to specifically formulate web search queries targeting relevant Reddit threads to gather trending community angles, using search operators like `site:reddit.com/r/sustainability`, `site:reddit.com/r/civilengineering`, or `site:reddit.com/r/ClimateTech` alongside the selected topic.
+- Emphasize that the scout must find recent Reddit discussions (within the past month) and capture post links (`url`) and community discussions (`excerpt`).
+
 You MUST enforce that the generated system prompt instructs the target agent to return ONLY valid JSON matching the exact schema specified below:
 
 Required JSON Return Schemas:
