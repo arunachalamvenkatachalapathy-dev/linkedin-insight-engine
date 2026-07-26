@@ -1,134 +1,43 @@
+"""
+Prompt Engineer Agent for EcoPulse LinkedIn automation pipeline.
+Dynamically generates optimized prompts for downstream agents.
+"""
+
 import json
 from llm import call_agent
 
-SYSTEM_PROMPT = """You are the Prompt Engineer subagent for EcoPulse. Your single task is to generate \
-highly optimized system and user instruction sets (prompts) for each subagent action in the pipeline, \
-rather than using hardcoded prompts.
-
-Based on the current selected topic and desired format/tone, generate the exact prompt for the target agent.
-
-When generating prompts for the "scout" agent:
-- You MUST instruct the scout to specifically formulate web search queries targeting relevant Reddit threads to gather trending community angles, using search operators like `site:reddit.com/r/sustainability`, `site:reddit.com/r/civilengineering`, or `site:reddit.com/r/ClimateTech` alongside the selected topic.
-- Emphasize that the scout must find recent Reddit discussions (within the past month) and capture post links (`url`) and community discussions (`excerpt`).
-
-You MUST enforce that the generated system prompt instructs the target agent to return ONLY valid JSON matching the exact schema specified below:
-
-Required JSON Return Schemas:
-- scout:
-{
-  "agent": "scout",
-  "topic": "<topic>",
-  "output": {
-    "findings": [
-      {"source": "...", "url": "...", "date": "...", "excerpt": "...", "relevance_to_engineers": "..."}
-    ]
-  }
-}
-
-- lateral_thinker:
-{
-  "agent": "lateral_thinker",
-  "output": {
-    "lateral_question": "...",
-    "insight": "...",
-    "hook_potential": "..."
-  }
-}
-
-- copywriter:
-{
-  "agent": "copywriter",
-  "output": {
-    "post_text": "...",
-    "hook": "...",
-    "hashtags": ["...", "..."],
-    "format_used": "...",
-    "tone_used": "...",
-    "image_brief": "..."
-  }
-}
-
-- visualizer:
-{
-  "agent": "visualizer",
-  "output": {
-    "image_prompt": "...",
-    "aspect_ratio": "1:1",
-    "style_notes": "...",
-    "text_overlay": null
-  }
-}
-
-Return ONLY valid JSON:
-{
-  "agent": "prompt_engineer",
-  "output": {
-    "generated_system_prompt": "...",
-    "generated_user_prompt": "..."
-  }
-}"""
-
 SCHEMAS = {
-    "scout": """
-Return ONLY valid JSON matching this schema:
-{
-  "agent": "scout",
-  "topic": "<topic>",
-  "output": {
-    "findings": [
-      {"source": "...", "url": "...", "date": "...", "excerpt": "...", "relevance_to_engineers": "..."}
-    ]
-  }
+    'planner': { 'agent': 'planner', 'output': { 'angle': '...', 'format_name': '...', 'tone_name': '...', 'length_band_name': '...', 'rationale': '...' } },
+    'content': { 'agent': 'content', 'topic': '<topic>', 'output': { 'selected_idea': { 'headline': '...', 'supporting_facts': ['...'], 'recency': '...', 'sources_used': ['...'], 'why_this_angle': '...' }, 'insight': { 'lateral_question': '...', 'insight_text': '...', 'hook_potential': '...' } } },
+    'header': { 'agent': 'header', 'output': { 'header_text': '...' } },
+    'body': { 'agent': 'body', 'output': { 'body_text': '...' } },
+    'footer': { 'agent': 'footer', 'output': { 'footer_text': '...', 'hashtags': ['...'] } },
+    'stitcher': { 'agent': 'stitcher', 'output': { 'final_post_text': '...', 'word_count': 0 } },
+    'checker': { 'agent': 'checker', 'output': { 'passed': True, 'issues': [], 'grounding_score': 0 } },
+    'image': { 'agent': 'image', 'output': { 'image_prompt': '...', 'aspect_ratio': '1:1', 'style_notes': '...' } }
 }
-""",
-    "lateral_thinker": """
-Return ONLY valid JSON matching this schema:
-{
-  "agent": "lateral_thinker",
-  "output": {
-    "lateral_question": "...",
-    "insight": "...",
-    "hook_potential": "..."
-  }
-}
-""",
-    "copywriter": """
-Return ONLY valid JSON matching this schema:
-{
-  "agent": "copywriter",
-  "output": {
-    "post_text": "...",
-    "hook": "...",
-    "hashtags": ["...", "..."],
-    "format_used": "...",
-    "tone_used": "...",
-    "image_brief": "..."
-  }
-}
-""",
-    "visualizer": """
-Return ONLY valid JSON matching this schema:
-{
-  "agent": "visualizer",
-  "output": {
-    "image_prompt": "...",
-    "aspect_ratio": "1:1",
-    "style_notes": "...",
-    "text_overlay": null
-  }
-}
+
+SYSTEM_PROMPT = """
+You are the Prompt Engineer for EcoPulse.
+Your task is to generate highly optimized system and user prompts for each downstream agent.
+For the 'content' agent: include Reddit search strategies (e.g., site:reddit.com/r/sustainability, etc.).
+For the 'image' agent: include DSLR photography style requirements.
+Domain anchoring: Constructed Wetlands ACW, BRSR Core/GHG, Paravanar basin.
+Always enforce the target agent's JSON return schema.
+
+Return a JSON object containing 'generated_system_prompt' and 'generated_user_prompt'.
 """
-}
 
 def generate_prompt_for_agent(agent_name: str, topic: str, extra_context: dict = None) -> dict:
-    """Dynamically engineer a prompt for a targeted pipeline action."""
-    user_content = (
-        f"Generate optimized prompts for agent: {agent_name}\n"
-        f"Topic: {topic}\n"
-        f"Context details: {json.dumps(extra_context or {})}"
-    )
-    result = call_agent(SYSTEM_PROMPT, user_content, use_web_search=False)
-    prompts = result["output"]
-    if agent_name in SCHEMAS:
-        prompts["generated_system_prompt"] += "\n\n" + SCHEMAS[agent_name]
-    return prompts
+    schema = SCHEMAS.get(agent_name, {})
+    user_content = json.dumps({
+        "agent_name": agent_name,
+        "topic": topic,
+        "extra_context": extra_context or {},
+        "target_schema": schema
+    })
+    return call_agent(SYSTEM_PROMPT, user_content)
+
+def run(*args, **kwargs):
+    # Fallback to match module requirements
+    return generate_prompt_for_agent(*args, **kwargs)

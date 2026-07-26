@@ -1,8 +1,10 @@
 """
-EcoPulse root orchestrator.
+EcoPulse root orchestrator — Multi-Agent Architecture v2.
+Pipeline: Manager → Planner → Content(+Repetition) → Header/Body/Footer → Stitcher → Checker → Image → Publish
+
 Run via: python orchestrator.py
 Reads config/niche_topics.json, config/post_formats.json, config/tones.json, and
-state/posted_log.json, runs the 7-agent pipeline, and (if everything validates)
+state/posted_log.json, runs the 11-agent pipeline, and (if everything validates)
 publishes to LinkedIn.
 """
 import os
@@ -10,6 +12,7 @@ import sys
 import json
 import random
 import logging
+import time
 from datetime import datetime, timezone
 
 # Load env variables from local .env
@@ -22,7 +25,18 @@ if os.path.exists(".env"):
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from agents import scout, curator, lateral_thinker, copywriter, fact_checker, visualizer, publisher, prompt_engineer  # noqa: E402
+from agents import (  # noqa: E402
+    prompt_engineer,
+    planner,
+    content,
+    header,
+    body,
+    footer,
+    stitcher,
+    checker,
+    image,
+    publisher,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("ecopulse")
@@ -36,6 +50,7 @@ IMAGE_PATH = os.path.join(ROOT, "state", "latest_image.png")
 
 DRY_RUN = os.environ.get("ECOPULSE_DRY_RUN", "false").lower() == "true"
 NO_REPEAT_WINDOW = 3  # don't reuse a format/tone used in the last N posts
+MAX_CHECKER_RETRIES = 2  # max times to re-run writing agents if checker fails
 
 
 def load_json(path, default):
@@ -46,6 +61,7 @@ def load_json(path, default):
 
 
 def save_json(path, data):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
 
@@ -63,6 +79,9 @@ def pick_non_repeating(pool: list, recent_used: list, key=lambda x: x):
 
 
 def main():
+    # ──────────────────────────────────────────────
+    # LOAD CONFIGURATION
+    # ──────────────────────────────────────────────
     topics = load_json(TOPICS_PATH, {}).get("topics", [])
     formats = load_json(FORMATS_PATH, {}).get("formats", [])
     tones = load_json(TONES_PATH, {}).get("tones", [])
@@ -76,120 +95,238 @@ def main():
     topic = pick_topic(topics, posted_log)
     log.info(f"Selected topic: {topic}")
 
-    recent_formats = [e.get("format_used") for e in posted_log[-NO_REPEAT_WINDOW:]]
-    recent_tones = [e.get("tone_used") for e in posted_log[-NO_REPEAT_WINDOW:]]
-    format_spec = pick_non_repeating(formats, recent_formats, key=lambda f: f["name"])
-    tone = pick_non_repeating(tones, recent_tones)
-    length_band = random.choice(length_bands)
-    log.info(f"Format: {format_spec['name']} | Tone: {tone} | Length: {length_band['name']}")
-
-    import time
-
-    log.info("Running Scout...")
-    scout_prompts = prompt_engineer.generate_prompt_for_agent("scout", topic)
-    scout_result = scout.call_agent(scout_prompts["generated_system_prompt"], scout_prompts["generated_user_prompt"], use_web_search=True)
-    log.info(f"Scout found {len(scout_result['output']['findings'])} items.")
-
-    time.sleep(8)
-    log.info("Running Curator...")
-    curator_result = curator.run(scout_result, posted_log)
-    selected = curator_result["output"]["selected_idea"]
-    if not selected:
-        log.warning(f"Curator found nothing fresh enough. Reason: "
-                     f"{curator_result['output'].get('why_this_angle')}. Skipping this run.")
-        sys.exit(0)
-    log.info(f"Curator selected: {selected['headline']}")
-
-    time.sleep(8)
-    log.info("Running Lateral Thinker...")
-    lat_prompts = prompt_engineer.generate_prompt_for_agent("lateral_thinker", topic, {"selected_idea": selected})
-    lateral_result = lateral_thinker.call_agent(lat_prompts["generated_system_prompt"], lat_prompts["generated_user_prompt"], use_web_search=False)
-
-    def write_post():
-        time.sleep(8)
-        copy_prompts = prompt_engineer.generate_prompt_for_agent(
-            "copywriter",
-            topic,
-            {
-                "lateral_output": lateral_result,
-                "source_facts": selected,
-                "format": format_spec,
-                "tone": tone,
-                "length": length_band
-            }
+    # ──────────────────────────────────────────────
+    # STEP 1: PLANNER — decide angle, format, tone
+    # ──────────────────────────────────────────────
+    log.info("═══ STEP 1: Running Planner ═══")
+    try:
+        pe_planner = prompt_engineer.generate_prompt_for_agent("planner", topic, {
+            "formats": [f["name"] for f in formats],
+            "tones": tones,
+            "length_bands": [lb["name"] for lb in length_bands],
+            "recent_posts": posted_log[-NO_REPEAT_WINDOW:]
+        })
+        from llm import call_agent as llm_call
+        planner_result = llm_call(
+            pe_planner.get("generated_system_prompt", planner.SYSTEM_PROMPT),
+            pe_planner.get("generated_user_prompt", f"Topic: {topic}")
         )
-        result = copywriter.call_agent(copy_prompts["generated_system_prompt"], copy_prompts["generated_user_prompt"], use_web_search=False)
-        return result["output"]["post_text"], result
+    except Exception as e:
+        log.warning(f"Prompt-engineered planner failed ({e}), using fallback...")
+        planner_result = planner.run(topic, formats, tones, length_bands, posted_log)
 
-    log.info("Running Copywriter...")
-    post_text, copy_result = write_post()
+    planner_output = planner_result.get("output", planner_result)
+    angle = planner_output.get("angle", topic)
+    format_name = planner_output.get("format_name", "")
+    tone_name = planner_output.get("tone_name", "")
+    length_band_name = planner_output.get("length_band_name", "")
 
-    # Validation gate 1: generic-content heuristic
-    if copywriter.sounds_generic(post_text) or not copywriter.within_length_band(post_text, length_band):
-        log.warning("Post failed quality/length check. Re-running Copywriter once...")
-        post_text, copy_result = write_post()
-        if copywriter.sounds_generic(post_text) or not copywriter.within_length_band(post_text, length_band):
-            log.error("Post still fails quality check after retry. Aborting without publishing.")
-            sys.exit(1)
+    # Resolve names to full specs from config
+    format_spec = next((f for f in formats if f["name"] == format_name), random.choice(formats))
+    tone = tone_name if tone_name in tones else random.choice(tones)
+    length_band = next((lb for lb in length_bands if lb["name"] == length_band_name), random.choice(length_bands))
 
-    # Validation gate 2: factual grounding
-    time.sleep(8)
-    log.info("Running Fact Checker...")
-    fc_result = fact_checker.run(post_text, selected, lateral_result)
-    if not fc_result["output"]["grounded"]:
-        log.warning(f"Post failed grounding check: {fc_result['output']['issues']}. "
-                     f"Re-running Copywriter once...")
-        post_text, copy_result = write_post()
-        time.sleep(8)
-        fc_result = fact_checker.run(post_text, selected, lateral_result)
-        if not fc_result["output"]["grounded"]:
-            log.error(f"Post still ungrounded after retry: {fc_result['output']['issues']}. "
-                       f"Aborting without publishing.")
-            sys.exit(1)
+    log.info(f"Planner decided — Angle: {angle} | Format: {format_spec['name']} | Tone: {tone} | Length: {length_band['name']}")
 
-    time.sleep(8)
-    log.info("Running Visualizer...")
-    vis_prompts = prompt_engineer.generate_prompt_for_agent("visualizer", topic, {"copywriter_output": copy_result["output"]})
-    visual_result = visualizer.call_agent(vis_prompts["generated_system_prompt"], vis_prompts["generated_user_prompt"], use_web_search=False)
-    prompt = visual_result["output"]["image_prompt"]
-    
-    style_suffix = (
-        ", crisp DSLR architectural photography, corporate editorial style, "
-        "natural sunlight, sharp focus on physical engineering media, "
-        "real-world environmental aesthetic, no 3D renders, no cartoons, no text"
-    )
-    prompt = f"{prompt.rstrip('.')}{style_suffix}"
-    image_path = visualizer._render_image_pollinations(prompt, IMAGE_PATH)
+    # ──────────────────────────────────────────────
+    # STEP 2: CONTENT — source facts + lateral insight + repetition check
+    # ──────────────────────────────────────────────
+    time.sleep(5)
+    log.info("═══ STEP 2: Running Content Agent ═══")
+    try:
+        pe_content = prompt_engineer.generate_prompt_for_agent("content", topic, {
+            "angle": angle,
+            "posted_log_headlines": [e.get("headline", "") for e in posted_log]
+        })
+        from llm import call_agent as llm_call
+        content_result = llm_call(
+            pe_content.get("generated_system_prompt", content.SYSTEM_PROMPT),
+            pe_content.get("generated_user_prompt", f"Topic: {topic}"),
+            use_web_search=True,
+            max_tokens=6000
+        )
+    except Exception as e:
+        log.warning(f"Prompt-engineered content failed ({e}), using fallback...")
+        content_result = content.run(topic, posted_log)
 
+    content_output = content_result.get("output", content_result)
+    selected_idea = content_output.get("selected_idea")
+
+    # If prompt-engineered content found nothing, try direct fallback
+    if not selected_idea:
+        log.warning("Prompt-engineered content found nothing. Trying direct content agent fallback...")
+        content_result = content.run(topic, posted_log)
+        content_output = content_result.get("output", content_result)
+        selected_idea = content_output.get("selected_idea")
+
+    if not selected_idea:
+        log.warning("Content agent found nothing fresh enough. Skipping this run.")
+        sys.exit(0)
+
+    log.info(f"Content selected: {selected_idea.get('headline', 'N/A')}")
+
+    # Build the shared brief that Header/Body/Footer all read from
+    plan = {
+        "angle": angle,
+        "format_name": format_spec["name"],
+        "format_spec": format_spec,
+        "tone_name": tone,
+        "length_band": length_band,
+    }
+    content_brief = {
+        "selected_idea": selected_idea,
+        "insight": content_output.get("insight", {}),
+    }
+
+    # ──────────────────────────────────────────────
+    # STEPS 3-6: HEADER → BODY → FOOTER → STITCHER (with Checker retry loop)
+    # ──────────────────────────────────────────────
+    final_post_text = None
+    hashtags = []
+
+    for checker_attempt in range(MAX_CHECKER_RETRIES + 1):
+        # STEP 3: HEADER
+        time.sleep(5)
+        log.info(f"═══ STEP 3: Running Header Agent (attempt {checker_attempt + 1}) ═══")
+        header_result = header.run(plan, content_brief)
+        header_text = header_result.get("output", header_result).get("header_text", "")
+        log.info(f"Header: {header_text[:80]}...")
+
+        # STEP 4: BODY
+        time.sleep(5)
+        log.info(f"═══ STEP 4: Running Body Agent (attempt {checker_attempt + 1}) ═══")
+        body_result = body.run(plan, content_brief, header_text)
+        body_text = body_result.get("output", body_result).get("body_text", "")
+        log.info(f"Body: {body_text[:80]}...")
+
+        # STEP 5: FOOTER
+        time.sleep(5)
+        log.info(f"═══ STEP 5: Running Footer Agent (attempt {checker_attempt + 1}) ═══")
+        footer_result = footer.run(plan, content_brief, header_text, body_text)
+        footer_output = footer_result.get("output", footer_result)
+        footer_text = footer_output.get("footer_text", "")
+        hashtags = footer_output.get("hashtags", [])
+        log.info(f"Footer: {footer_text[:80]}...")
+
+        # STEP 6: STITCHER
+        time.sleep(5)
+        log.info(f"═══ STEP 6: Running Stitcher Agent (attempt {checker_attempt + 1}) ═══")
+        stitcher_result = stitcher.run(header_text, body_text, footer_text, tone)
+        stitcher_output = stitcher_result.get("output", stitcher_result)
+        final_post_text = stitcher_output.get("final_post_text", "")
+        word_count = stitcher_output.get("word_count", len(final_post_text.split()))
+        log.info(f"Stitcher assembled post: {word_count} words")
+
+        # ──────────────────────────────────────────────
+        # STEP 7: CHECKER — fact-check + quality gate
+        # ──────────────────────────────────────────────
+        time.sleep(5)
+        log.info(f"═══ STEP 7: Running Checker Agent (attempt {checker_attempt + 1}) ═══")
+
+        # Local heuristic checks first
+        if checker.sounds_generic(final_post_text):
+            log.warning("Post failed local generic-content heuristic check.")
+            if checker_attempt < MAX_CHECKER_RETRIES:
+                log.info("Retrying writing agents...")
+                continue
+            else:
+                log.error("Post still generic after max retries. Aborting.")
+                sys.exit(1)
+
+        if not checker.within_length_band(final_post_text, length_band):
+            log.warning(f"Post failed length check (got {len(final_post_text.split())} words, "
+                        f"band: {length_band['min_words']}-{length_band['max_words']}).")
+            if checker_attempt < MAX_CHECKER_RETRIES:
+                log.info("Retrying writing agents...")
+                continue
+            else:
+                log.error("Post still wrong length after max retries. Aborting.")
+                sys.exit(1)
+
+        # LLM-based deep check
+        checker_result = checker.run(
+            post_text=final_post_text,
+            source_facts=selected_idea,
+            lateral_insight=content_output.get("insight", {}),
+            format_spec=format_spec,
+            tone=tone,
+            length_band=length_band
+        )
+        checker_output = checker_result.get("output", checker_result)
+        passed = checker_output.get("passed", False)
+        issues = checker_output.get("issues", [])
+        grounding_score = checker_output.get("grounding_score", 0)
+
+        log.info(f"Checker verdict: passed={passed}, score={grounding_score}, issues={issues}")
+
+        if passed:
+            log.info("✅ Post passed all quality checks!")
+            break
+        else:
+            if checker_attempt < MAX_CHECKER_RETRIES:
+                log.warning(f"Checker failed (issues: {issues}). Retrying writing agents...")
+                continue
+            else:
+                log.error(f"Post failed checker after {MAX_CHECKER_RETRIES + 1} attempts. Aborting.")
+                sys.exit(1)
+
+    # ──────────────────────────────────────────────
+    # STEP 8: IMAGE — generate + render via Stable Diffusion
+    # ──────────────────────────────────────────────
+    time.sleep(5)
+    log.info("═══ STEP 8: Running Image Agent ═══")
+    image_brief = {
+        "post_text": final_post_text,
+        "image_brief": f"Professional DSLR photograph related to: {angle}",
+        "topic": topic,
+    }
+    image_result = image.run(copywriter_output=image_brief, out_path=IMAGE_PATH)
+    image_output = image_result.get("output", image_result)
+    image_path = image_output.get("image_path")
+    model_used = image_output.get("model_used", "unknown")
+    log.info(f"Image generated via {model_used}: {image_path}")
+
+    # ──────────────────────────────────────────────
+    # STEP 9: PUBLISH (or dry-run)
+    # ──────────────────────────────────────────────
     if DRY_RUN:
-        log.info("DRY RUN — not publishing. Final post preview:\n")
-        print(post_text)
-        print(f"\nHashtags: {copy_result['output']['hashtags']}")
-        print(f"Format: {format_spec['name']} | Tone: {tone}")
-        print(f"Image saved to: {image_path}")
+        log.info("═══ DRY RUN — not publishing ═══")
+        print("\n" + "=" * 60)
+        print("FINAL POST PREVIEW:")
+        print("=" * 60)
+        print(final_post_text)
+        print(f"\nHashtags: {hashtags}")
+        print(f"Format: {format_spec['name']} | Tone: {tone} | Angle: {angle}")
+        print(f"Image: {image_path} (model: {model_used})")
+        print(f"Word count: {word_count}")
+        print("=" * 60)
         return
 
-    log.info("Running Publisher...")
+    log.info("═══ STEP 9: Running Publisher ═══")
     publish_result = publisher.run(
-        post_text=post_text,
+        post_text=final_post_text,
         image_path=image_path,
-        hashtags=copy_result["output"]["hashtags"],
+        hashtags=hashtags,
     )
 
     if publish_result["output"]["status"] == "published":
-        log.info(f"Published! post_id={publish_result['output']['post_id']}")
-        
-        # Save post text to a local file for easy verification/debugging
+        post_id = publish_result["output"]["post_id"]
+        log.info(f"✅ Published! post_id={post_id}")
+
+        # Save post text for verification
         with open(os.path.join(ROOT, "state", "latest_published_post.txt"), "w", encoding="utf-8") as f:
-            f.write(f"POST TEXT:\n{post_text}\n\nHASHTAGS:\n{', '.join(copy_result['output']['hashtags'])}\n")
+            f.write(f"POST TEXT:\n{final_post_text}\n\nHASHTAGS:\n{', '.join(hashtags)}\n"
+                    f"\nFORMAT: {format_spec['name']}\nTONE: {tone}\nANGLE: {angle}\n"
+                    f"\nIMAGE MODEL: {model_used}\n")
 
         posted_log.append({
-            "headline": selected["headline"],
+            "headline": selected_idea.get("headline", angle),
             "topic": topic,
             "format_used": format_spec["name"],
             "tone_used": tone,
+            "angle": angle,
             "date": datetime.now(timezone.utc).isoformat(),
-            "post_id": publish_result["output"]["post_id"],
+            "post_id": post_id,
         })
         save_json(LOG_PATH, posted_log)
     else:
