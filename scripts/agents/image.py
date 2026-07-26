@@ -1,15 +1,19 @@
 """
 Image generation agent for EcoPulse.
-Generates an image prompt and renders it via image generation APIs.
+Renders scroll-stopping visual assets using multiple AI engines:
+1. Pollinations Flux (Next-gen hyper-realistic AI model)
+2. Stability AI (SD3.5-large / Ultra)
+3. OpenAI DALL-E 3
+4. Google Imagen 3
+5. Pollinations SDXL
 """
 
 import os
 import json
-import base64
-import requests
-import urllib.request
-import urllib.parse
 import logging
+import requests
+import urllib.parse
+import urllib.request
 from llm import call_agent
 
 try:
@@ -17,24 +21,28 @@ try:
 except ImportError:
     genai = None
 
-SYSTEM_PROMPT = """You are the Image prompt agent for EcoPulse.
+log = logging.getLogger("ecopulse")
 
-Generate a DSLR-quality photographic image prompt based on the provided post content.
-Style: crisp DSLR architectural/editorial photography, natural sunlight, real-world environmental engineering.
-Quality keywords to include: DSLR photography, architectural editorial, natural sunlight, sharp focus, real-world engineering, environmental aesthetic, high detail, 8k.
-AVOID: 3D renders, cartoons, illustrations, stock photo cliches, text overlays, watermarks, hands holding plants.
+SYSTEM_PROMPT = """You are an expert Visual Art Director specializing in scroll-stopping LinkedIn visuals for environmental engineering and climate tech.
 
-Return ONLY valid JSON with this schema:
+YOUR JOB:
+Create an evocative, dramatic, award-winning visual prompt based on the post text.
+
+PROMPT DESIGN RULES:
+1. VISUAL STYLE: Architectural photography, cinematic drone shot, high-contrast editorial lighting, volumetric atmospheric haze, hyper-realistic 8k photo.
+2. COMPOSITION: Dramatic wide-angle perspective, dynamic leading lines, golden hour or cinematic dusk lighting.
+3. SUBJECT MATTER: Real-world infrastructure, satellite remote sensing overlays, industrial wetlands, clean energy grids, high-tech environmental monitoring equipment.
+4. QUALITY KEYWORDS: Cinematic lighting, 8k resolution, photorealistic, sharp focus, Leica 35mm lens, award-winning architectural photography, editorial color grade.
+5. NO CLICHÉS: NO hands holding plants, NO cartoon globes, NO generic green leaves, NO text overlays, NO fake 3D graphics.
+
+Return ONLY valid JSON:
 {
-  "image_prompt": "..."
+  "image_prompt": "Cinematic wide-angle photo of..."
 }
 """
 
 def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> dict:
-    """
-    Run the image agent.
-    """
-    # Step 1: Call LLM to generate image prompt JSON
+    """Run the image agent with multi-engine fallback."""
     user_content = json.dumps(copywriter_output)
     result = call_agent(
         system_prompt=SYSTEM_PROMPT,
@@ -44,23 +52,33 @@ def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> di
     
     prompt = result.get("image_prompt", "")
     if not prompt:
-        # Fallback if the LLM output didn't strictly follow JSON, or parsing failed inside call_agent
         if "output" in result and "image_prompt" in result["output"]:
             prompt = result["output"]["image_prompt"]
         else:
             prompt = str(result)
             
-    # Step 2: Append photographic style suffix
-    style_suffix = ", crisp DSLR architectural/editorial photography, natural sunlight, real-world environmental engineering, sharp focus, high detail, 8k"
+    # Add high-impact visual modifiers
+    style_suffix = ", cinematic editorial lighting, photorealistic 8k, sharp focus, architectural photography, volumetric atmosphere, no text"
     if style_suffix not in prompt:
         prompt += style_suffix
 
-    # Step 3: Try rendering in fallback order
     os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
-    
     model_used = None
-    
-    # 1. Stability AI
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+
+    # Engine 1: Pollinations FLUX (Hyper-realistic state-of-the-art model)
+    if not model_used:
+        try:
+            flux_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?model=flux&width=1200&height=630&nologo=true&enhance=true"
+            resp = requests.get(flux_url, headers=headers, timeout=60)
+            if resp.status_code == 200 and len(resp.content) > 10000:
+                with open(out_path, "wb") as f:
+                    f.write(resp.content)
+                model_used = "Pollinations FLUX (Hyper-Realistic)"
+        except Exception as e:
+            log.warning(f"Pollinations FLUX failed: {e}")
+
+    # Engine 2: Stability AI (SD3.5 / Ultra)
     stability_key = os.environ.get("STABILITY_API_KEY")
     if stability_key and not model_used:
         try:
@@ -81,26 +99,11 @@ def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> di
             if response.status_code == 200:
                 with open(out_path, 'wb') as f:
                     f.write(response.content)
-                model_used = "Stability AI sd3.5-large"
+                model_used = "Stability AI SD3.5"
         except Exception as e:
-            logging.warning(f"Stability AI failed: {e}")
+            log.warning(f"Stability AI failed: {e}")
 
-    # 2. Pollinations SDXL (free fallback)
-    if not model_used:
-        try:
-            url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?model=stable-diffusion-xl&width=1024&height=1024&nologo=true"
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
-            resp = requests.get(url, headers=headers, timeout=60)
-            if resp.status_code == 200:
-                with open(out_path, "wb") as f:
-                    f.write(resp.content)
-                model_used = "Pollinations SDXL"
-            else:
-                logging.warning(f"Pollinations returned HTTP {resp.status_code}")
-        except Exception as e:
-            logging.warning(f"Pollinations SDXL failed: {e}")
-
-    # 3. OpenAI DALL-E 3
+    # Engine 3: OpenAI DALL-E 3
     openai_key = os.environ.get("OPENAI_API_KEY")
     if openai_key and not model_used:
         try:
@@ -114,19 +117,20 @@ def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> di
                     "model": "dall-e-3",
                     "prompt": prompt,
                     "n": 1,
-                    "size": "1024x1024"
+                    "size": "1024x1024",
+                    "quality": "hd"
                 },
-                timeout=30
+                timeout=45
             )
             if response.status_code == 200:
                 data = response.json()
                 img_url = data['data'][0]['url']
                 urllib.request.urlretrieve(img_url, out_path)
-                model_used = "OpenAI DALL-E 3"
+                model_used = "OpenAI DALL-E 3 HD"
         except Exception as e:
-            logging.warning(f"OpenAI DALL-E 3 failed: {e}")
+            log.warning(f"OpenAI DALL-E 3 failed: {e}")
 
-    # 4. Google Imagen
+    # Engine 4: Google Imagen 3
     gemini_key = os.environ.get("GEMINI_API_KEY")
     if gemini_key and genai and not model_used:
         try:
@@ -137,19 +141,29 @@ def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> di
                 config=dict(
                     number_of_images=1,
                     output_mime_type="image/png",
+                    aspect_ratio="16:9"
                 )
             )
             if result_img and result_img.generated_images:
                 img_bytes = result_img.generated_images[0].image.image_bytes
                 with open(out_path, 'wb') as f:
                     f.write(img_bytes)
-                model_used = "Google Imagen"
+                model_used = "Google Imagen 3"
         except Exception as e:
-            logging.warning(f"Google Imagen failed: {e}")
-            
+            log.warning(f"Google Imagen 3 failed: {e}")
+
+    # Engine 5: Pollinations SDXL (Fallback)
     if not model_used:
-        logging.error("All image generation methods failed.")
-        
+        try:
+            sdxl_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?model=stable-diffusion-xl&width=1024&height=1024&nologo=true"
+            resp = requests.get(sdxl_url, headers=headers, timeout=60)
+            if resp.status_code == 200:
+                with open(out_path, "wb") as f:
+                    f.write(resp.content)
+                model_used = "Pollinations SDXL"
+        except Exception as e:
+            log.warning(f"Pollinations SDXL failed: {e}")
+
     return {
         "agent": "image",
         "output": {

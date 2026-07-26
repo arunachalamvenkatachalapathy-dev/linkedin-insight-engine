@@ -33,6 +33,7 @@ from agents import (  # noqa: E402
     body,
     footer,
     stitcher,
+    strategist,
     checker,
     accuracy,
     image,
@@ -224,6 +225,19 @@ def main():
 
         word_count = len(final_post_text.split())
         log.info(f"Stitcher assembled post: {word_count} words")
+
+        # STEP 6.5: STRATEGIST — Transform stitched draft into high-engagement viral format (1-2 sentence paragraphs, bolding, hook, paradox, CTA)
+        time.sleep(5)
+        log.info(f"═══ STEP 6.5: Running Strategist Agent (attempt {checker_attempt + 1}) ═══")
+        strat_result = strategist.run(final_post_text, topic, angle)
+        strat_output = strat_result.get("output", strat_result) if isinstance(strat_result, dict) else {}
+        viral_text = strat_output.get("viral_post_text") if isinstance(strat_output, dict) else None
+
+        if viral_text and len(viral_text.split()) >= 30:
+            final_post_text = viral_text
+            log.info(f"Strategist formatted viral post: {len(final_post_text.split())} words")
+        else:
+            log.warning("Strategist returned empty or short text. Keeping stitched text.")
 
         # ──────────────────────────────────────────────
         # STEP 7: CHECKER — fact-check + quality gate
