@@ -34,6 +34,7 @@ from agents import (  # noqa: E402
     footer,
     stitcher,
     checker,
+    accuracy,
     image,
     publisher,
 )
@@ -267,8 +268,32 @@ def main():
         log.info(f"Checker verdict: passed={passed}, score={grounding_score}, issues={issues}")
 
         if passed:
-            log.info("✅ Post passed all quality checks!")
-            break
+            # ──────────────────────────────────────────────
+            # STEP 7.5: ACCURACY AGENT — Technical & Empirical Audit
+            # ──────────────────────────────────────────────
+            log.info(f"═══ STEP 7.5: Running Accuracy Agent Audit ═══")
+            acc_result = accuracy.run(
+                post_text=final_post_text,
+                source_facts=selected_idea,
+                lateral_insight=content_output.get("insight", {})
+            )
+            acc_output = acc_result.get("output", acc_result)
+            acc_passed = acc_output.get("accuracy_passed", True)
+            acc_score = acc_output.get("accuracy_score", 100)
+            errors = acc_output.get("factual_errors", [])
+
+            log.info(f"Accuracy audit verdict: passed={acc_passed}, score={acc_score}, errors={errors}")
+
+            if acc_passed:
+                log.info("✅ Post passed both quality and technical accuracy checks!")
+                break
+            else:
+                if checker_attempt < MAX_CHECKER_RETRIES:
+                    log.warning(f"Accuracy audit failed (errors: {errors}). Retrying writing agents...")
+                    continue
+                else:
+                    log.error(f"Post failed accuracy check after max retries. Aborting.")
+                    sys.exit(1)
         else:
             if checker_attempt < MAX_CHECKER_RETRIES:
                 log.warning(f"Checker failed (issues: {issues}). Retrying writing agents...")
