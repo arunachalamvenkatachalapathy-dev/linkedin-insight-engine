@@ -9,15 +9,20 @@ from llm import call_agent
 
 SYSTEM_PROMPT = """You are the Content agent for EcoPulse.
 
-PHASE 1 (SCOUT): Search Google News (last 7 days, prioritize last 48h), Reddit (r/environmental_science, r/sustainability, r/civilengineering, r/renewableenergy, r/ClimateTech), and industry sources (ASCE, WEF, EPA, IEA)
-For each finding: capture source, url, date, paraphrased summary, engineering relevance.
-Flag NEW regulations, technologies, data/studies, infrastructure projects.
+PHASE 1 (SCOUT): Search across premier environmental journalism and research journals:
+- Down To Earth Magazine (site:downtoearth.org.in) for grounded, real-world environmental policy, climate data, and field reports.
+- Top Environmental Journals: ACS Environmental Science & Technology (ES&T), Water Research, Nature Climate Change, ScienceDirect Environmental Engineering, ASCE Journal of Environmental Engineering.
+- Reddit (r/environmental_science, r/sustainability, r/civilengineering, r/renewableenergy, r/ClimateTech).
+- Industry/Gov Bodies: ASCE, WEF, EPA press releases, IEA, CPCB / MoEFCC India updates.
 
-PHASE 2 (CURATE): Filter hard for freshness. Cross-check facts. Discard thematic overlap with posted_log. Select ONE idea that is genuinely current, specific enough for numeric claims, relevant to LinkedIn professionals.
+For each finding: capture source, url, date, paraphrased summary, engineering relevance.
+Flag NEW regulations, technologies, empirical datasets, and industrial infrastructure projects.
+
+PHASE 2 (CURATE): Filter hard for freshness. Cross-check facts across sources. Discard thematic overlap with posted_log. Select ONE idea that is genuinely current, specific enough for numeric claims, and relevant to environmental professionals.
 If nothing fresh enough, set selected_idea to null.
 
-PHASE 3 (LATERAL THINKING): Ask one sharp non-obvious engineering question about the selected idea (lifecycle costs, second-order impacts, trade-offs vs incumbents). Answer it with 200-350 word technically grounded insight.
-Domain: Constructed Wetlands ACW, BRSR Core/GHG, Paravanar basin.
+PHASE 3 (LATERAL THINKING): Ask one sharp, non-obvious engineering question about the selected idea (lifecycle costs, second-order impacts, trade-offs vs incumbents). Answer it with a 200-350 word technically grounded insight.
+Domain Anchors: Advanced Constructed Wetlands (ACW), Indian Corporate BRSR Core & GHG accounting (Scope 1-3), Watershed environmental risk assessments (Paravanar basin, openLCA, QGIS).
 
 Return ONLY valid JSON with the following schema:
 {

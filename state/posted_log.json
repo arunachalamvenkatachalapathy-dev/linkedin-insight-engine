@@ -110,5 +110,32 @@
     "tone_used": "cautiously optimistic \u2014 acknowledges real progress without hype",
     "date": "2026-07-26T05:46:44.579547+00:00",
     "post_id": "urn:li:share:7487020562955907072"
+  },
+  {
+    "headline": "Beyond passive filtration: Scaling Aerated Constructed Wetlands (ACW) for industrial high-COD load management",
+    "topic": "wastewater treatment technology",
+    "format_used": "data_led",
+    "tone_used": "skeptical \u2014 questioning whether the obvious narrative holds up",
+    "angle": "wastewater treatment technology",
+    "date": "2026-07-26T09:54:37.998041+00:00",
+    "post_id": "urn:li:share:7487083158236995585"
+  },
+  {
+    "headline": "Integrating MCI as a Dynamic Proxy for Scope 3 Decarbonization in Indian Construction",
+    "topic": "circular economy in construction",
+    "format_used": "cost_tradeoff",
+    "tone_used": "curious and exploratory \u2014 thinking out loud on the page",
+    "angle": "Evaluating the integration of circular construction metrics into BRSR Core disclosures, specifically focusing on the material circularity index (MCI) as a proxy for Scope 3 emissions reduction and waste diversion mandates in India.",
+    "date": "2026-07-26T10:22:44.538774+00:00",
+    "post_id": "urn:li:share:7487090233436499968"
+  },
+  {
+    "headline": "Beyond the site boundary: Why PFAS plume attenuation modeling is failing due to 'hidden' precursor transformation",
+    "topic": "PFAS and emerging contaminants",
+    "format_used": "mini_case_study",
+    "tone_used": "blunt and direct \u2014 short sentences, no hedging",
+    "angle": "PFAS and emerging contaminants",
+    "date": "2026-07-26T11:09:24.523435+00:00",
+    "post_id": "urn:li:share:7487101977336639488"
   }
 ]

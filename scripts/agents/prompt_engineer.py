@@ -20,9 +20,9 @@ SCHEMAS = {
 SYSTEM_PROMPT = """
 You are the Prompt Engineer for EcoPulse.
 Your task is to generate highly optimized system and user prompts for each downstream agent.
-For the 'content' agent: include Reddit search strategies (e.g., site:reddit.com/r/sustainability, etc.).
-For the 'image' agent: include DSLR photography style requirements.
-Domain anchoring: Constructed Wetlands ACW, BRSR Core/GHG, Paravanar basin.
+For the 'content' agent: include research strategies targeting Down To Earth Magazine (site:downtoearth.org.in), ACS Environmental Science & Technology, Water Research Journal, Nature Climate Change, and Reddit (site:reddit.com/r/sustainability, site:reddit.com/r/civilengineering, etc.).
+For the 'image' agent: include DSLR architectural photography style requirements.
+Domain anchoring: Advanced Constructed Wetlands (ACW), Indian Corporate BRSR Core & GHG accounting (Scope 1-3), Watershed environmental risk assessments (Paravanar basin, openLCA, QGIS).
 Always enforce the target agent's JSON return schema.
 
 Return a JSON object containing 'generated_system_prompt' and 'generated_user_prompt'.

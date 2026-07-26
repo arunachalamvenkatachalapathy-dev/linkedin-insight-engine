@@ -212,9 +212,15 @@ def main():
         time.sleep(5)
         log.info(f"═══ STEP 6: Running Stitcher Agent (attempt {checker_attempt + 1}) ═══")
         stitcher_result = stitcher.run(header_text, body_text, footer_text, tone)
-        stitcher_output = stitcher_result.get("output", stitcher_result)
-        final_post_text = stitcher_output.get("final_post_text", "")
-        word_count = stitcher_output.get("word_count", len(final_post_text.split()))
+        stitcher_output = stitcher_result.get("output", stitcher_result) if isinstance(stitcher_result, dict) else {}
+        final_post_text = stitcher_output.get("final_post_text") if isinstance(stitcher_output, dict) else None
+
+        # Fail-safe assembly if stitcher returned empty or truncated title-only text
+        if not final_post_text or len(final_post_text.split()) < 30:
+            log.warning("Stitcher text missing or truncated. Performing fail-safe concatenation of header + body + footer...")
+            final_post_text = f"{header_text}\n\n{body_text}\n\n{footer_text}"
+
+        word_count = len(final_post_text.split())
         log.info(f"Stitcher assembled post: {word_count} words")
 
         # ──────────────────────────────────────────────
@@ -303,6 +309,13 @@ def main():
         return
 
     log.info("═══ STEP 9: Running Publisher ═══")
+
+    # Pre-publish safety validation
+    assert final_post_text and len(final_post_text.split()) >= 30, \
+        f"ABORT: final_post_text is too short ({len(final_post_text.split()) if final_post_text else 0} words)"
+    log.info(f"Pre-publish validation: {len(final_post_text.split())} words, {len(final_post_text)} chars")
+    log.info(f"First 300 chars of post: {final_post_text[:300]}")
+
     publish_result = publisher.run(
         post_text=final_post_text,
         image_path=image_path,
