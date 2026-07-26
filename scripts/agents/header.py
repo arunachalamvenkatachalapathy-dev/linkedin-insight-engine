@@ -18,7 +18,6 @@ RULES:
 - Lead directly into the narrative so the LinkedIn feed preview is highly informative and does not look blank
 - Match the assigned tone throughout
 - Be specific to the engineering topic — use real project names, technologies, or metrics from the content brief
-- Domain context: Constructed Wetlands (ACW), BRSR Core sustainability disclosures, Paravanar river basin
 
 Return ONLY valid JSON:
 {
