@@ -26,6 +26,7 @@ if os.path.exists(".env"):
 sys.path.insert(0, os.path.dirname(__file__))
 
 from agents import (  # noqa: E402
+    instructor,
     prompt_engineer,
     planner,
     content,
@@ -97,6 +98,12 @@ def main():
 
     topic = pick_topic(topics, posted_log)
     log.info(f"Selected topic: {topic}")
+
+    # ──────────────────────────────────────────────
+    # STEP 0: INSTRUCTOR AGENT — Quality & Credibility Layer Initialization
+    # ──────────────────────────────────────────────
+    log.info("═══ STEP 0: Initializing Instructor Agent (Quality & Credibility Layer) ═══")
+    log.info("Applying Master Quality Directive across all generation, stitching, and auditing phases.")
 
     # ──────────────────────────────────────────────
     # STEP 1: PLANNER — decide angle, format, tone
@@ -299,8 +306,34 @@ def main():
             log.info(f"Accuracy audit verdict: passed={acc_passed}, score={acc_score}, errors={errors}")
 
             if acc_passed:
-                log.info("✅ Post passed both quality and technical accuracy checks!")
-                break
+                # ──────────────────────────────────────────────
+                # STEP 7.8: INSTRUCTOR AGENT — Final Quality & Credibility Audit
+                # ──────────────────────────────────────────────
+                log.info(f"═══ STEP 7.8: Running Instructor Agent Final Audit ═══")
+                inst_result = instructor.audit(
+                    post_text=final_post_text,
+                    source_facts=selected_idea,
+                    topic=topic
+                )
+                inst_output = inst_result.get("output", inst_result)
+                inst_passed = inst_output.get("passed", True)
+                inst_issues = inst_output.get("issues", [])
+                anchor_found = inst_output.get("concrete_anchor_found", "N/A")
+
+                log.info(f"Instructor audit verdict: passed={inst_passed}, anchor='{anchor_found}', issues={inst_issues}")
+
+                if inst_passed:
+                    # Clean stock transitions & AI rhythm clichés
+                    final_post_text = instructor.clean_stock_transitions(final_post_text)
+                    log.info("✅ Post passed all Quality, Accuracy, and Instructor Credibility checks!")
+                    break
+                else:
+                    if checker_attempt < MAX_CHECKER_RETRIES:
+                        log.warning(f"Instructor audit failed (issues: {inst_issues}). Retrying writing agents...")
+                        continue
+                    else:
+                        log.error(f"Post failed Instructor audit after max retries. Aborting.")
+                        sys.exit(1)
             else:
                 if checker_attempt < MAX_CHECKER_RETRIES:
                     log.warning(f"Accuracy audit failed (errors: {errors}). Retrying writing agents...")

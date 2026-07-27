@@ -6,27 +6,33 @@ Writes the closing CTA and hashtags for a post.
 import json
 from llm import call_agent
 
-SYSTEM_PROMPT = """You are the Footer agent for EcoPulse.
+from agents.instructor import QUALITY_CREDIBILITY_DIRECTIVE
+
+SYSTEM_PROMPT = f"""You are the Footer agent for EcoPulse.
+
+INSTRUCTOR MASTER DIRECTIVE:
+{QUALITY_CREDIBILITY_DIRECTIVE}
 
 Your job: Write ONLY the closing section of a LinkedIn post (2-4 sentences) plus hashtags.
 
 WORD COUNT TARGET: Write 30-50 words for the footer text (excluding hashtags). Do not write less than 25 words.
 
 RULES:
+- CLOSING QUESTION RULE (Rule 4): The closing question MUST add a NEW angle, not restate the thesis already stated twice in the body. Pose a genuinely open, debatable question that climate tech, energy, and ESG professionals haven't already been told the answer to.
 - VARY the closing style across posts — use one of: a provocative question, an invitation to disagree, a specific data challenge, a direct ask for professional input, or a forward-looking statement
 - Do NOT default to generic closings like 'What are your thoughts?' or 'Thoughts?'
 - Include 3-5 relevant, specific hashtags that are genuinely related to this post's content (not a recycled generic set)
-- Max 1-2 emojis only if the tone suits it
+- NO emojis
 - The closing should invite a real professional response shaped by the post's format and content
 
 Return ONLY valid JSON:
-{
+{{
   "agent": "footer",
-  "output": {
+  "output": {{
     "footer_text": "Your 30-50 word closing section here...",
     "hashtags": ["Hashtag1", "Hashtag2", "Hashtag3"]
-  }
-}"""
+  }}
+}}"""
 
 def run(plan: dict, content_brief: dict, header_text: str, body_text: str) -> dict:
     """Run the Footer agent."""

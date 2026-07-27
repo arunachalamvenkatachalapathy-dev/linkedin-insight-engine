@@ -8,9 +8,14 @@ import json
 import logging
 from llm import call_agent
 
+from agents.instructor import QUALITY_CREDIBILITY_DIRECTIVE
+
 log = logging.getLogger("ecopulse")
 
-SYSTEM_PROMPT = """You are the Content agent for EcoPulse.
+SYSTEM_PROMPT = f"""You are the Content agent for EcoPulse.
+
+INSTRUCTOR MASTER DIRECTIVE:
+{QUALITY_CREDIBILITY_DIRECTIVE}
 
 PHASE 1 (SCOUT): Search for FRESH content (last 7 days, prioritize last 48h) across these sources:
 - Down To Earth Magazine (downtoearth.org.in) — India-focused environmental journalism, policy analysis, field reports
@@ -24,38 +29,39 @@ Prioritize: NEW regulations, novel technologies, empirical field data, infrastru
 
 PHASE 2 (CURATE): 
 - Filter hard for freshness and specificity.
-- Cross-check key claims across multiple sources.
-- CRITICAL: Compare against posted_log and REJECT any idea that overlaps thematically with a previous post. Look at headlines AND topics — if a similar technology, regulation, or concept was already covered, skip it.
-- Select ONE idea that is genuinely current, specific enough for numeric claims, and would interest environmental/sustainability professionals on LinkedIn.
+- SOURCING RULE: Ensure every statistic or metric comes from a REAL named source or framework. If a number cannot be verified with a named source, frame it qualitatively.
+- CONCRETE ANCHORS: Capture specific named companies, regulations, plant types, or standards (e.g. GRI, CSRD, BRSR Core).
+- Compare against posted_log and REJECT any idea that overlaps thematically with a previous post.
+- Select ONE idea that is genuinely current, specific, and factually grounded.
 - If nothing fresh enough, set selected_idea to null.
 
 PHASE 3 (LATERAL THINKING): 
 - Ask one sharp, non-obvious engineering question about the selected idea (lifecycle costs, second-order impacts, trade-offs vs incumbents, implementation barriers).
-- Answer it with a 200-350 word technically grounded insight.
+- Answer it with a technically grounded insight.
 
 DOMAIN CONTEXT (author background, use as context NOT as mandatory framing):
 The author is an ESG & Sustainability Analyst with expertise in BRSR/GRI/CSRD reporting, GHG accounting (Scope 1-3), Constructed Wetlands, and watershed risk assessments. 
 Posts should relate to environmental engineering broadly — NOT every post must mention these specific topics.
 
 Return ONLY valid JSON with the following schema:
-{
+{{
   "agent": "content",
   "topic": "<topic>",
-  "output": {
-    "selected_idea": {
+  "output": {{
+    "selected_idea": {{
       "headline": "...",
       "supporting_facts": ["fact1", "fact2", "fact3"],
       "recency": "Published YYYY-MM-DD or This week",
       "sources_used": ["Source Name (url)"],
       "why_this_angle": "..."
-    },
-    "insight": {
+    }},
+    "insight": {{
       "lateral_question": "...",
       "insight_text": "...",
       "hook_potential": "..."
-    }
-  }
-}
+    }}
+  }}
+}}
 """
 
 def run(topic: str, posted_log: list) -> dict:

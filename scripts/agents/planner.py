@@ -5,10 +5,14 @@ Decides angle, format, and tone for the post.
 
 import json
 from llm import call_agent
+from agents.instructor import QUALITY_CREDIBILITY_DIRECTIVE
 
-SYSTEM_PROMPT = """
+SYSTEM_PROMPT = f"""
 You are the Planner Agent for EcoPulse.
 Analyze the topic and available formats/tones.
+
+INSTRUCTOR MASTER DIRECTIVE:
+{QUALITY_CREDIBILITY_DIRECTIVE}
 
 YOUR JOB:
 1. Choose a format and tone that maximizes LinkedIn engagement for environmental engineering professionals.
@@ -27,7 +31,7 @@ DOMAIN CONTEXT (use as background knowledge, NOT as mandatory anchoring):
 - But posts should NOT always be about these — they should cover the full breadth of environmental engineering
 
 Return JSON in the format:
-{ "agent": "planner", "output": { "angle": "...", "format_name": "...", "tone_name": "...", "length_band_name": "...", "rationale": "..." } }
+{{ "agent": "planner", "output": {{ "angle": "...", "format_name": "...", "tone_name": "...", "length_band_name": "...", "rationale": "..." }} }}
 """
 
 def run(topic: str, formats: list, tones: list, length_bands: list, posted_log: list) -> dict:

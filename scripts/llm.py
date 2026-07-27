@@ -6,7 +6,11 @@ Requires ANTHROPIC_API_KEY or GEMINI_API_KEY in the environment.
 import os
 import json
 import re
+import time
+import logging
 import requests
+
+log = logging.getLogger("ecopulse")
 
 # Load env variables from local .env if running locally
 if os.path.exists(".env"):
@@ -88,97 +92,60 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
                 raise RuntimeError(f"Claude API failed after retries: {e}")
 
     elif gemini_key:
-        model_name = MODEL or "gemini-3.1-flash-lite"
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
-        
-        contents = [
-            {
-                "role": "user",
-                "parts": [{"text": user_content}]
-            }
+        models_to_try = [
+            MODEL or "gemini-2.0-flash",
+            "gemini-2.5-flash",
+            "gemini-1.5-flash-latest"
         ]
         
-        for attempt in range(max_retries + 1):
-            payload = {
-                "contents": contents,
-                "systemInstruction": {
-                    "parts": [{"text": system_prompt}]
-                },
-                "generationConfig": {
-                    "maxOutputTokens": max_tokens,
-                    "temperature": 0.7 + (attempt * 0.1),
-                    "frequencyPenalty": 0.75,
-                    "presencePenalty": 0.4,
-                    "thinkingConfig": {
-                        "thinkingBudget": 0
+        last_error = None
+        for model_name in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
+            
+            for attempt in range(3):
+                payload = {
+                    "contents": [{"role": "user", "parts": [{"text": user_content}]}],
+                    "systemInstruction": {"parts": [{"text": system_prompt}]},
+                    "generationConfig": {
+                        "maxOutputTokens": max_tokens,
+                        "temperature": 0.7 + (attempt * 0.1),
                     }
                 }
-            }
-            
-            if use_web_search and attempt == 0:
-                payload["tools"] = [{"googleSearch": {}}]
-            else:
-                payload["generationConfig"]["responseMimeType"] = "application/json"
-
-            try:
-                resp = requests.post(url, json=payload, timeout=60)
-                resp.raise_for_status()
-                res_data = resp.json()
                 
-                candidate = res_data["candidates"][0]
-                if "content" in candidate and "parts" in candidate["content"]:
-                    text = candidate["content"]["parts"][0]["text"]
-                    return _extract_json(text)
+                if use_web_search and attempt == 0:
+                    payload["tools"] = [{"googleSearch": {}}]
                 else:
-                    reason = candidate.get("finishReason", "UNKNOWN")
-                    raise KeyError(f"No content found (Finish Reason: {reason})")
-            except Exception as e:
-                if "frequencyPenalty" in payload.get("generationConfig", {}):
-                    del payload["generationConfig"]["frequencyPenalty"]
-                    del payload["generationConfig"]["presencePenalty"]
-                    try:
+                    payload["generationConfig"]["responseMimeType"] = "application/json"
+
+                try:
+                    resp = requests.post(url, json=payload, timeout=60)
+                    if resp.status_code == 429:
+                        wait_time = (attempt + 1) * 12
+                        log.warning(f"Gemini API rate limit (429) on {model_name}. Sleeping {wait_time}s...")
+                        time.sleep(wait_time)
                         resp = requests.post(url, json=payload, timeout=60)
-                        resp.raise_for_status()
-                        res_data = resp.json()
-                        candidate = res_data["candidates"][0]
-                        if "content" in candidate and "parts" in candidate["content"]:
-                            text = candidate["content"]["parts"][0]["text"]
-                            return _extract_json(text)
-                    except Exception as retry_err:
-                        e = retry_err
-                # Catch rate limits (429) and temporary server overloads (502, 503, 504) and sleep before retrying
-                is_retryable = False
-                if isinstance(e, requests.exceptions.HTTPError):
-                    if e.response.status_code in (429, 502, 503, 504):
-                        is_retryable = True
-                elif any(err in str(e) for err in ("429", "502", "503", "504")):
-                    is_retryable = True
-
-                if is_retryable and attempt < max_retries:
-                    import time
-                    time.sleep(15 * (attempt + 1))
-                    continue
-
-                if attempt < max_retries:
-                    # Append model's response and retry instructions
-                    model_text = ""
-                    try:
-                        model_text = res_data["candidates"][0]["content"]["parts"][0]["text"]
-                    except Exception:
-                        model_text = "Empty or failed response"
+                        
+                    resp.raise_for_status()
+                    res_data = resp.json()
                     
-                    contents.append({
-                        "role": "model",
-                        "parts": [{"text": model_text}]
-                    })
-                    contents.append({
-                        "role": "user",
-                        "parts": [{
-                            "text": f"That was not valid JSON ({e}). Output ONLY the corrected, clean JSON object. "
-                                    "Ensure all double quotes inside string values are properly escaped (e.g. \\\"quote\\\")."
-                        }]
-                    })
-                    continue
-                raise RuntimeError(f"Gemini API failed: {e}")
+                    candidate = res_data["candidates"][0]
+                    if "content" in candidate and "parts" in candidate["content"]:
+                        text = candidate["content"]["parts"][0]["text"]
+                        return _extract_json(text)
+                    else:
+                        reason = candidate.get("finishReason", "UNKNOWN")
+                        raise KeyError(f"No content found (Finish Reason: {reason})")
+                        
+                except Exception as e:
+                    last_error = e
+                    if "429" in str(e) or "Too Many Requests" in str(e):
+                        log.warning(f"429 rate limit on {model_name} (attempt {attempt+1}). Sleeping 15s...")
+                        time.sleep(15)
+                    else:
+                        log.warning(f"Gemini API attempt {attempt+1} on {model_name} failed: {e}")
+                        time.sleep(3)
+                        
+        raise RuntimeError(f"Gemini API failed across all models and retries: {last_error}")
+
     else:
         raise ValueError("Neither ANTHROPIC_API_KEY nor GEMINI_API_KEY found in the environment.")
