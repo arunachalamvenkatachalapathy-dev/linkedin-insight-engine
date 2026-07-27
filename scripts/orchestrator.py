@@ -4,7 +4,7 @@ Pipeline: Manager → Planner → Content(+Repetition) → Header/Body/Footer �
 
 Run via: python orchestrator.py
 Reads config/niche_topics.json, config/post_formats.json, config/tones.json, and
-state/posted_log.json, runs the 11-agent pipeline, and (if everything validates)
+state/posted_log.json, runs the multi-agent pipeline, and (if everything validates)
 publishes to LinkedIn.
 """
 import os
@@ -27,7 +27,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from agents import (  # noqa: E402
     instructor,
-    prompt_engineer,
     planner,
     content,
     header,
@@ -54,6 +53,9 @@ IMAGE_PATH = os.path.join(ROOT, "state", "latest_image.png")
 DRY_RUN = os.environ.get("ECOPULSE_DRY_RUN", "false").lower() == "true"
 NO_REPEAT_WINDOW = 3  # don't reuse a format/tone used in the last N posts
 MAX_CHECKER_RETRIES = 2  # max times to re-run writing agents if checker fails
+
+# Inter-step pacing delay (seconds) — prevents rate-limit storms on free-tier APIs
+STEP_DELAY = 15
 
 
 def load_json(path, default):
@@ -82,6 +84,13 @@ def pick_non_repeating(pool: list, recent_used: list, key=lambda x: x):
     return random.choice(candidates)
 
 
+def step_pause(label: str = ""):
+    """Delay between pipeline steps to avoid API rate limit pressure."""
+    if label:
+        log.info(f"Pacing delay before {label}...")
+    time.sleep(STEP_DELAY)
+
+
 def main():
     # ──────────────────────────────────────────────
     # LOAD CONFIGURATION
@@ -107,23 +116,15 @@ def main():
 
     # ──────────────────────────────────────────────
     # STEP 1: PLANNER — decide angle, format, tone
+    # (Direct call — no prompt_engineer to halve API usage)
     # ──────────────────────────────────────────────
+    step_pause("Planner")
     log.info("═══ STEP 1: Running Planner ═══")
     try:
-        pe_planner = prompt_engineer.generate_prompt_for_agent("planner", topic, {
-            "formats": [f["name"] for f in formats],
-            "tones": tones,
-            "length_bands": [lb["name"] for lb in length_bands],
-            "recent_posts": posted_log[-NO_REPEAT_WINDOW:]
-        })
-        from llm import call_agent as llm_call
-        planner_result = llm_call(
-            pe_planner.get("generated_system_prompt", planner.SYSTEM_PROMPT),
-            pe_planner.get("generated_user_prompt", f"Topic: {topic}")
-        )
-    except Exception as e:
-        log.warning(f"Prompt-engineered planner failed ({e}), using fallback...")
         planner_result = planner.run(topic, formats, tones, length_bands, posted_log)
+    except Exception as e:
+        log.error(f"Planner agent failed: {e}")
+        sys.exit(1)
 
     planner_output = planner_result.get("output", planner_result)
     angle = planner_output.get("angle", topic)
@@ -140,34 +141,18 @@ def main():
 
     # ──────────────────────────────────────────────
     # STEP 2: CONTENT — source facts + lateral insight + repetition check
+    # (Direct call — no prompt_engineer to halve API usage)
     # ──────────────────────────────────────────────
-    time.sleep(5)
+    step_pause("Content Agent")
     log.info("═══ STEP 2: Running Content Agent ═══")
     try:
-        pe_content = prompt_engineer.generate_prompt_for_agent("content", topic, {
-            "angle": angle,
-            "posted_log_headlines": [e.get("headline", "") for e in posted_log]
-        })
-        from llm import call_agent as llm_call
-        content_result = llm_call(
-            pe_content.get("generated_system_prompt", content.SYSTEM_PROMPT),
-            pe_content.get("generated_user_prompt", f"Topic: {topic}"),
-            use_web_search=True,
-            max_tokens=6000
-        )
-    except Exception as e:
-        log.warning(f"Prompt-engineered content failed ({e}), using fallback...")
         content_result = content.run(topic, posted_log)
+    except Exception as e:
+        log.error(f"Content agent failed: {e}")
+        sys.exit(1)
 
     content_output = content_result.get("output", content_result)
     selected_idea = content_output.get("selected_idea")
-
-    # If prompt-engineered content found nothing, try direct fallback
-    if not selected_idea:
-        log.warning("Prompt-engineered content found nothing. Trying direct content agent fallback...")
-        content_result = content.run(topic, posted_log)
-        content_output = content_result.get("output", content_result)
-        selected_idea = content_output.get("selected_idea")
 
     if not selected_idea:
         log.warning("Content agent found nothing fresh enough. Skipping this run.")
@@ -196,21 +181,21 @@ def main():
 
     for checker_attempt in range(MAX_CHECKER_RETRIES + 1):
         # STEP 3: HEADER
-        time.sleep(5)
+        step_pause("Header Agent")
         log.info(f"═══ STEP 3: Running Header Agent (attempt {checker_attempt + 1}) ═══")
         header_result = header.run(plan, content_brief)
         header_text = header_result.get("output", header_result).get("header_text", "")
         log.info(f"Header: {header_text[:80]}...")
 
         # STEP 4: BODY
-        time.sleep(5)
+        step_pause("Body Agent")
         log.info(f"═══ STEP 4: Running Body Agent (attempt {checker_attempt + 1}) ═══")
         body_result = body.run(plan, content_brief, header_text)
         body_text = body_result.get("output", body_result).get("body_text", "")
         log.info(f"Body: {body_text[:80]}...")
 
         # STEP 5: FOOTER
-        time.sleep(5)
+        step_pause("Footer Agent")
         log.info(f"═══ STEP 5: Running Footer Agent (attempt {checker_attempt + 1}) ═══")
         footer_result = footer.run(plan, content_brief, header_text, body_text)
         footer_output = footer_result.get("output", footer_result)
@@ -219,7 +204,7 @@ def main():
         log.info(f"Footer: {footer_text[:80]}...")
 
         # STEP 6: STITCHER
-        time.sleep(5)
+        step_pause("Stitcher Agent")
         log.info(f"═══ STEP 6: Running Stitcher Agent (attempt {checker_attempt + 1}) ═══")
         stitcher_result = stitcher.run(header_text, body_text, footer_text, tone)
         stitcher_output = stitcher_result.get("output", stitcher_result) if isinstance(stitcher_result, dict) else {}
@@ -234,7 +219,7 @@ def main():
         log.info(f"Stitcher assembled post: {word_count} words")
 
         # STEP 6.5: STRATEGIST — Transform stitched draft into high-engagement viral format (1-2 sentence paragraphs, bolding, hook, paradox, CTA)
-        time.sleep(5)
+        step_pause("Strategist Agent")
         log.info(f"═══ STEP 6.5: Running Strategist Agent (attempt {checker_attempt + 1}) ═══")
         strat_result = strategist.run(final_post_text, topic, angle)
         strat_output = strat_result.get("output", strat_result) if isinstance(strat_result, dict) else {}
@@ -249,7 +234,7 @@ def main():
         # ──────────────────────────────────────────────
         # STEP 7: CHECKER — fact-check + quality gate
         # ──────────────────────────────────────────────
-        time.sleep(5)
+        step_pause("Checker Agent")
         log.info(f"═══ STEP 7: Running Checker Agent (attempt {checker_attempt + 1}) ═══")
 
         # Local heuristic checks first
@@ -292,6 +277,7 @@ def main():
             # ──────────────────────────────────────────────
             # STEP 7.5: ACCURACY AGENT — Technical & Empirical Audit
             # ──────────────────────────────────────────────
+            step_pause("Accuracy Agent")
             log.info(f"═══ STEP 7.5: Running Accuracy Agent Audit ═══")
             acc_result = accuracy.run(
                 post_text=final_post_text,
@@ -309,6 +295,7 @@ def main():
                 # ──────────────────────────────────────────────
                 # STEP 7.8: INSTRUCTOR AGENT — Final Quality & Credibility Audit
                 # ──────────────────────────────────────────────
+                step_pause("Instructor Agent")
                 log.info(f"═══ STEP 7.8: Running Instructor Agent Final Audit ═══")
                 inst_result = instructor.audit(
                     post_text=final_post_text,
@@ -352,7 +339,7 @@ def main():
     # ──────────────────────────────────────────────
     # STEP 8: IMAGE — generate + render via Stable Diffusion
     # ──────────────────────────────────────────────
-    time.sleep(5)
+    step_pause("Image Agent")
     log.info("═══ STEP 8: Running Image Agent ═══")
     image_brief = {
         "post_text": final_post_text,
