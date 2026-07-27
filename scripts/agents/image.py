@@ -43,18 +43,22 @@ Return ONLY valid JSON:
 def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> dict:
     """Run the image agent with multi-engine priority."""
     user_content = json.dumps(copywriter_output)
-    result = call_agent(
-        system_prompt=SYSTEM_PROMPT,
-        user_content=user_content,
-        use_web_search=False
-    )
-    
-    prompt = result.get("image_prompt", "")
-    if not prompt:
-        if "output" in result and "image_prompt" in result["output"]:
-            prompt = result["output"]["image_prompt"]
-        else:
-            prompt = str(result)
+    try:
+        result = call_agent(
+            system_prompt=SYSTEM_PROMPT,
+            user_content=user_content,
+            use_web_search=False
+        )
+        prompt = result.get("image_prompt", "")
+        if not prompt:
+            if "output" in result and "image_prompt" in result["output"]:
+                prompt = result["output"]["image_prompt"]
+            else:
+                prompt = str(result)
+    except Exception as err:
+        log.warning(f"Image prompt LLM call failed ({err}). Using direct copywriter fallback prompt.")
+        headline = copywriter_output.get("headline", "Environmental Engineering Infrastructure")
+        prompt = f"Cinematic wide-angle architectural photograph of high-tech environmental engineering infrastructure for {headline}"
             
     style_suffix = ", photorealistic 8k, crisp architectural editorial photography, natural daylight, sharp focus, no text"
     if style_suffix not in prompt:
