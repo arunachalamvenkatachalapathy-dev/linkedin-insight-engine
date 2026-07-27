@@ -95,6 +95,7 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
         models_to_try = [
             MODEL or "gemini-2.5-flash",
             "gemini-2.0-flash",
+            "gemini-1.5-flash"
         ]
         
         last_error = None
@@ -119,7 +120,7 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
                 try:
                     resp = requests.post(url, json=payload, timeout=60)
                     if resp.status_code == 429:
-                        wait_time = (attempt + 1) * 12
+                        wait_time = (attempt + 1) * 20
                         log.warning(f"Gemini API rate limit (429) on {model_name}. Sleeping {wait_time}s...")
                         time.sleep(wait_time)
                         resp = requests.post(url, json=payload, timeout=60)
@@ -138,8 +139,8 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
                 except Exception as e:
                     last_error = e
                     if "429" in str(e) or "Too Many Requests" in str(e):
-                        log.warning(f"429 rate limit on {model_name} (attempt {attempt+1}). Sleeping 15s...")
-                        time.sleep(15)
+                        log.warning(f"429 rate limit on {model_name} (attempt {attempt+1}). Sleeping 20s...")
+                        time.sleep(20)
                     else:
                         log.warning(f"Gemini API attempt {attempt+1} on {model_name} failed: {e}")
                         time.sleep(3)
