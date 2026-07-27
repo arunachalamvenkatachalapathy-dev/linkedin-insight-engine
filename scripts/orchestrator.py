@@ -55,7 +55,7 @@ NO_REPEAT_WINDOW = 3  # don't reuse a format/tone used in the last N posts
 MAX_CHECKER_RETRIES = 2  # max times to re-run writing agents if checker fails
 
 # Inter-step pacing delay (seconds) — prevents rate-limit storms on free-tier APIs
-STEP_DELAY = 15
+STEP_DELAY = 20
 
 
 def load_json(path, default):

@@ -110,85 +110,68 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
                 raise RuntimeError(f"Claude API failed after retries: {e}")
 
     elif gemini_key:
-        # Only use models that actually exist on the API
-        models_to_try = [
-            MODEL or "gemini-2.5-flash",
-            "gemini-2.0-flash",
-        ]
+        # Use a single model — gemini-2.0-flash and 2.5-flash share the same
+        # rate-limit quota, so model fallback doesn't help with 429s.
+        # Instead, retry aggressively with exponential backoff.
+        model_name = MODEL or "gemini-2.0-flash"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
+        max_attempts = 5
 
         last_error = None
-        for model_name in models_to_try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
-
-            for attempt in range(3):
-                _pace()
-                payload = {
-                    "contents": [{"role": "user", "parts": [{"text": user_content}]}],
-                    "systemInstruction": {"parts": [{"text": system_prompt}]},
-                    "generationConfig": {
-                        "maxOutputTokens": max_tokens,
-                        "temperature": 0.7 + (attempt * 0.1),
-                    }
+        for attempt in range(max_attempts):
+            _pace()
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": user_content}]}],
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "generationConfig": {
+                    "maxOutputTokens": max_tokens,
+                    "temperature": 0.7 + (attempt * 0.05),
                 }
+            }
 
-                if use_web_search and attempt == 0:
-                    payload["tools"] = [{"googleSearch": {}}]
+            if use_web_search and attempt == 0:
+                payload["tools"] = [{"googleSearch": {}}]
+            else:
+                payload["generationConfig"]["responseMimeType"] = "application/json"
+
+            try:
+                resp = requests.post(url, json=payload, timeout=90)
+
+                if resp.status_code == 429:
+                    # Linear backoff: 30s, 60s, 90s, 120s, 150s — enough to
+                    # clear the per-minute rate window on each retry.
+                    wait_time = 30 * (attempt + 1) + random.uniform(5, 15)
+                    log.warning(f"429 rate limit on {model_name} (attempt {attempt+1}/{max_attempts}). "
+                                f"Waiting {wait_time:.0f}s...")
+                    time.sleep(wait_time)
+                    last_error = RuntimeError(f"429 rate limit on {model_name}")
+                    continue  # Try the next attempt
+
+                resp.raise_for_status()
+                res_data = resp.json()
+
+                candidate = res_data["candidates"][0]
+                if "content" in candidate and "parts" in candidate["content"]:
+                    text = candidate["content"]["parts"][0]["text"]
+                    return _extract_json(text)
                 else:
-                    payload["generationConfig"]["responseMimeType"] = "application/json"
+                    reason = candidate.get("finishReason", "UNKNOWN")
+                    raise KeyError(f"No content found (Finish Reason: {reason})")
 
-                try:
-                    resp = requests.post(url, json=payload, timeout=90)
+            except requests.exceptions.HTTPError as e:
+                last_error = e
+                log.warning(f"Gemini API attempt {attempt+1}/{max_attempts} on {model_name} failed: {e}")
+                time.sleep(10 + random.uniform(0, 5))
+            except json.JSONDecodeError as e:
+                last_error = e
+                log.warning(f"JSON parse error on {model_name} (attempt {attempt+1}/{max_attempts}): {e}")
+                time.sleep(5)
+            except Exception as e:
+                last_error = e
+                log.warning(f"Gemini API attempt {attempt+1}/{max_attempts} on {model_name} failed: {e}")
+                time.sleep(10 + random.uniform(0, 5))
 
-                    if resp.status_code == 429:
-                        # Exponential backoff with jitter for rate limits
-                        base_wait = 30 * (2 ** attempt)  # 30s, 60s, 120s
-                        jitter = random.uniform(0, 15)
-                        wait_time = base_wait + jitter
-                        log.warning(f"429 rate limit on {model_name} (attempt {attempt+1}/3). "
-                                    f"Backing off {wait_time:.0f}s...")
-                        time.sleep(wait_time)
-                        # Retry after backoff
-                        _pace()
-                        resp = requests.post(url, json=payload, timeout=90)
-
-                    if resp.status_code == 429:
-                        # Still rate limited after retry — move to next model
-                        log.warning(f"Still 429 after backoff on {model_name}. Trying next model...")
-                        last_error = RuntimeError(f"429 rate limit on {model_name}")
-                        break  # Break attempt loop, try next model
-
-                    resp.raise_for_status()
-                    res_data = resp.json()
-
-                    candidate = res_data["candidates"][0]
-                    if "content" in candidate and "parts" in candidate["content"]:
-                        text = candidate["content"]["parts"][0]["text"]
-                        return _extract_json(text)
-                    else:
-                        reason = candidate.get("finishReason", "UNKNOWN")
-                        raise KeyError(f"No content found (Finish Reason: {reason})")
-
-                except requests.exceptions.HTTPError as e:
-                    last_error = e
-                    if resp.status_code == 404:
-                        log.warning(f"Model {model_name} not found (404). Skipping to next model.")
-                        break  # Skip this model entirely
-                    elif resp.status_code == 429:
-                        # Already handled above, but just in case
-                        break
-                    else:
-                        log.warning(f"Gemini API attempt {attempt+1} on {model_name} failed: {e}")
-                        time.sleep(5 + random.uniform(0, 5))
-                except json.JSONDecodeError as e:
-                    last_error = e
-                    log.warning(f"JSON parse error on {model_name} (attempt {attempt+1}): {e}")
-                    time.sleep(3)
-                except Exception as e:
-                    last_error = e
-                    log.warning(f"Gemini API attempt {attempt+1} on {model_name} failed: {e}")
-                    time.sleep(5 + random.uniform(0, 5))
-
-        raise RuntimeError(f"Gemini API failed across all models and retries: {last_error}")
+        raise RuntimeError(f"Gemini API failed after {max_attempts} attempts: {last_error}")
 
     else:
         raise ValueError("Neither ANTHROPIC_API_KEY nor GEMINI_API_KEY found in the environment.")
