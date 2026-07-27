@@ -93,9 +93,8 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
 
     elif gemini_key:
         models_to_try = [
-            MODEL or "gemini-2.0-flash",
-            "gemini-2.5-flash",
-            "gemini-1.5-flash-latest"
+            MODEL or "gemini-2.5-flash",
+            "gemini-2.0-flash",
         ]
         
         last_error = None
