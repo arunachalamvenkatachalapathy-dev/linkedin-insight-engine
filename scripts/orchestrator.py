@@ -57,7 +57,10 @@ def main():
     # 1. PLANNER AGENT
     log.info("═══ STEP 1: Running Planner ═══")
     try:
-        plan_result = planner.run(topic)
+        formats_list = list(planner.FORMATS.keys())
+        tones_list = list(planner.TONES.keys())
+        length_list = list(planner.LENGTH_BANDS.keys())
+        plan_result = planner.run(topic, formats_list, tones_list, length_list, posted_log)
     except Exception as e:
         if "429" in str(e) or "rate-limited" in str(e).lower():
             log.warning(f"Gemini API quota window limit reached: {e}. Exiting run cleanly.")
