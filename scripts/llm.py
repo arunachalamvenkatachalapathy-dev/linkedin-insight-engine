@@ -1,7 +1,6 @@
 """
 Shared LLM helper for all EcoPulse agents.
-Calls Google Gemini API with model rotation (gemini-2.5-flash, gemini-2.0-flash, gemini-2.0-flash-lite, gemini-2.5-pro).
-Fails fast on 429 rate limits to prevent workflow stalls.
+Calls Google Gemini API (gemini-2.5-flash, gemini-2.0-flash) with failover to OpenAI (gpt-4o-mini) and Anthropic (claude-3-5-sonnet).
 """
 import os
 import json
@@ -24,7 +23,7 @@ if os.path.exists(".env"):
 MODEL = os.environ.get("ECOPULSE_MODEL")
 
 _last_api_call_time = 0.0
-_MIN_GAP_SECONDS = 4
+_MIN_GAP_SECONDS = 3
 
 
 def _pace():
@@ -55,12 +54,14 @@ def _extract_json(text: str) -> dict:
 def call_agent(system_prompt: str, user_content: str, use_web_search: bool = False,
                 max_tokens: int = 4000, max_retries: int = 1) -> dict:
     """
-    Call Gemini LLM API across a multi-model fallback chain:
-    gemini-2.5-flash -> gemini-2.0-flash -> gemini-2.0-flash-lite -> gemini-2.5-pro
-    Fails fast on 429 rate limits.
+    Call LLM across multi-provider failover chain:
+    1. Anthropic Claude (if ANTHROPIC_API_KEY present)
+    2. Google Gemini (gemini-2.5-flash -> gemini-2.0-flash -> gemini-2.0-flash-lite)
+    3. OpenAI GPT (gpt-4o-mini -> gpt-4o via OPENAI_API_KEY)
     """
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
 
     # 1. Try Anthropic Claude if available
     if anthropic_key:
@@ -89,52 +90,80 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
                 log.warning(f"Claude API attempt {attempt+1} failed: {e}")
 
     # 2. Try Google Gemini across model variants
-    if not gemini_key:
-        raise ValueError("GEMINI_API_KEY is missing from the environment.")
+    if gemini_key:
+        models_to_try = [
+            MODEL or "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+            "gemini-2.5-pro",
+        ]
 
-    models_to_try = [
-        MODEL or "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-2.5-pro",
-    ]
+        for model_name in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
+            _pace()
 
-    last_error = ""
-    for model_name in models_to_try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
-        _pace()
-
-        payload = {
-            "contents": [{"role": "user", "parts": [{"text": user_content}]}],
-            "systemInstruction": {"parts": [{"text": system_prompt}]},
-            "generationConfig": {
-                "maxOutputTokens": max_tokens,
-                "temperature": 0.7,
+            payload = {
+                "contents": [{"role": "user", "parts": [{"text": user_content}]}],
+                "systemInstruction": {"parts": [{"text": system_prompt}]},
+                "generationConfig": {
+                    "maxOutputTokens": max_tokens,
+                    "temperature": 0.7,
+                }
             }
-        }
 
-        if use_web_search:
-            payload["tools"] = [{"googleSearch": {}}]
-        else:
-            payload["generationConfig"]["responseMimeType"] = "application/json"
-
-        try:
-            resp = requests.post(url, json=payload, timeout=25)
-            if resp.status_code == 200:
-                res_data = resp.json()
-                candidate = res_data["candidates"][0]
-                if "content" in candidate and "parts" in candidate["content"]:
-                    text = candidate["content"]["parts"][0]["text"]
-                    return _extract_json(text)
-            elif resp.status_code == 429:
-                log.warning(f"Gemini API 429 Rate Limit on {model_name}. Trying next model...")
-                last_error = f"429 Rate Limit on {model_name}"
-                continue  # Fast failover to next model
+            if use_web_search:
+                payload["tools"] = [{"googleSearch": {}}]
             else:
-                log.warning(f"Gemini API status {resp.status_code} on {model_name}")
-                last_error = f"HTTP {resp.status_code} on {model_name}"
-        except Exception as exc:
-            log.warning(f"Gemini API exception on {model_name}: {exc}")
-            last_error = str(exc)
+                payload["generationConfig"]["responseMimeType"] = "application/json"
 
-    raise RuntimeError(f"All LLM API calls rate-limited or unavailable. Last status: {last_error}")
+            try:
+                resp = requests.post(url, json=payload, timeout=25)
+                if resp.status_code == 200:
+                    res_data = resp.json()
+                    candidate = res_data["candidates"][0]
+                    if "content" in candidate and "parts" in candidate["content"]:
+                        text = candidate["content"]["parts"][0]["text"]
+                        return _extract_json(text)
+                elif resp.status_code == 429:
+                    log.warning(f"Gemini API 429 Rate Limit on {model_name}. Trying next model/provider...")
+                    continue
+                else:
+                    log.warning(f"Gemini API status {resp.status_code} on {model_name}")
+            except Exception as exc:
+                log.warning(f"Gemini API exception on {model_name}: {exc}")
+
+    # 3. Try OpenAI GPT (gpt-4o-mini / gpt-4o) if Gemini is rate limited or unavailable
+    if openai_key:
+        for oai_model in ["gpt-4o-mini", "gpt-4o"]:
+            _pace()
+            try:
+                log.info(f"Attempting LLM call with OpenAI {oai_model}...")
+                resp = requests.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {openai_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": oai_model,
+                        "response_format": {"type": "json_object"},
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_content}
+                        ],
+                        "temperature": 0.7,
+                        "max_tokens": max_tokens
+                    },
+                    timeout=35
+                )
+                if resp.status_code == 200:
+                    res_json = resp.json()
+                    content_str = res_json["choices"][0]["message"]["content"]
+                    log.info(f"Successfully generated response via OpenAI {oai_model}")
+                    return _extract_json(content_str)
+                else:
+                    log.warning(f"OpenAI {oai_model} status {resp.status_code}: {resp.text[:120]}")
+            except Exception as exc:
+                log.warning(f"OpenAI {oai_model} exception: {exc}")
+
+    raise RuntimeError("All LLM providers (Gemini, OpenAI, Claude) rate-limited or unavailable.")
