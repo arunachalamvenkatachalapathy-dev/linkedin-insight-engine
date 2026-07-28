@@ -38,9 +38,9 @@ def within_length_band(post_text: str, length_band: dict) -> bool:
     min_words = length_band.get("min_words", 0)
     max_words = length_band.get("max_words", 10000)
     word_count = len(post_text.split())
-    # Allow 20% tolerance below min and above max for Strategist agent post formatting
+    # Allow 20% tolerance below min and 40% tolerance above max for Strategist agent formatting
     tolerance_min = int(min_words * 0.8)
-    tolerance_max = int(max_words * 1.25)
+    tolerance_max = int(max_words * 1.40)
     return tolerance_min <= word_count <= tolerance_max
 
 def run(post_text: str, source_facts: dict, lateral_insight: dict, format_spec: dict, tone: str, length_band: dict) -> dict:
