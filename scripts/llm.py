@@ -1,7 +1,7 @@
 """
 Shared LLM helper for all EcoPulse agents.
-Calls Google Gemini API with model rotation (gemini-2.5-flash, gemini-2.0-flash, gemini-2.0-flash-lite, gemini-2.5-pro)
-and smart rate-limit backoff to guarantee 100% live, unique, non-repetitive AI generation.
+Calls Google Gemini API with model rotation (gemini-2.5-flash, gemini-2.0-flash, gemini-2.0-flash-lite, gemini-2.5-pro).
+Fails fast on 429 rate limits to prevent workflow stalls.
 """
 import os
 import json
@@ -24,7 +24,7 @@ if os.path.exists(".env"):
 MODEL = os.environ.get("ECOPULSE_MODEL")
 
 _last_api_call_time = 0.0
-_MIN_GAP_SECONDS = 5  # Minimum gap between consecutive API calls to prevent rate-limit storms
+_MIN_GAP_SECONDS = 4
 
 
 def _pace():
@@ -53,12 +53,11 @@ def _extract_json(text: str) -> dict:
 
 
 def call_agent(system_prompt: str, user_content: str, use_web_search: bool = False,
-                max_tokens: int = 4000, max_retries: int = 2) -> dict:
+                max_tokens: int = 4000, max_retries: int = 1) -> dict:
     """
     Call Gemini LLM API across a multi-model fallback chain:
     gemini-2.5-flash -> gemini-2.0-flash -> gemini-2.0-flash-lite -> gemini-2.5-pro
-
-    Retries with progressive backoff on 429 rate limits to ensure 100% live, unique content.
+    Fails fast on 429 rate limits.
     """
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
@@ -103,50 +102,39 @@ def call_agent(system_prompt: str, user_content: str, use_web_search: bool = Fal
     last_error = ""
     for model_name in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_key}"
+        _pace()
 
-        for attempt in range(3):
-            _pace()
-
-            payload = {
-                "contents": [{"role": "user", "parts": [{"text": user_content}]}],
-                "systemInstruction": {"parts": [{"text": system_prompt}]},
-                "generationConfig": {
-                    "maxOutputTokens": max_tokens,
-                    "temperature": 0.7 + (attempt * 0.05),
-                }
+        payload = {
+            "contents": [{"role": "user", "parts": [{"text": user_content}]}],
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "generationConfig": {
+                "maxOutputTokens": max_tokens,
+                "temperature": 0.7,
             }
+        }
 
-            if use_web_search and attempt == 0:
-                payload["tools"] = [{"googleSearch": {}}]
+        if use_web_search:
+            payload["tools"] = [{"googleSearch": {}}]
+        else:
+            payload["generationConfig"]["responseMimeType"] = "application/json"
+
+        try:
+            resp = requests.post(url, json=payload, timeout=25)
+            if resp.status_code == 200:
+                res_data = resp.json()
+                candidate = res_data["candidates"][0]
+                if "content" in candidate and "parts" in candidate["content"]:
+                    text = candidate["content"]["parts"][0]["text"]
+                    return _extract_json(text)
+            elif resp.status_code == 429:
+                log.warning(f"Gemini API 429 Rate Limit on {model_name}. Trying next model...")
+                last_error = f"429 Rate Limit on {model_name}"
+                continue  # Fast failover to next model
             else:
-                payload["generationConfig"]["responseMimeType"] = "application/json"
+                log.warning(f"Gemini API status {resp.status_code} on {model_name}")
+                last_error = f"HTTP {resp.status_code} on {model_name}"
+        except Exception as exc:
+            log.warning(f"Gemini API exception on {model_name}: {exc}")
+            last_error = str(exc)
 
-            try:
-                resp = requests.post(url, json=payload, timeout=40)
-                if resp.status_code == 200:
-                    res_data = resp.json()
-                    candidate = res_data["candidates"][0]
-                    if "content" in candidate and "parts" in candidate["content"]:
-                        text = candidate["content"]["parts"][0]["text"]
-                        return _extract_json(text)
-                    else:
-                        reason = candidate.get("finishReason", "UNKNOWN")
-                        log.warning(f"Gemini candidate content empty (reason: {reason}).")
-                elif resp.status_code == 429:
-                    # Parse retryDelay from Gemini response header/body if present
-                    delay = 20 * (attempt + 1)
-                    match = re.search(r'retry(?:Delay|\s+in)\s*:?\s*"?(\d+)', resp.text, re.IGNORECASE)
-                    if match:
-                        delay = min(int(match.group(1)) + 5, 45)
-
-                    log.warning(f"Gemini API 429 Rate Limit on {model_name} (attempt {attempt+1}/3). "
-                                f"Waiting {delay}s for quota window reset...")
-                    time.sleep(delay)
-                else:
-                    log.warning(f"Gemini API status {resp.status_code} on {model_name}: {resp.text[:120]}")
-                    time.sleep(5)
-            except Exception as exc:
-                log.warning(f"Gemini API exception on {model_name}: {exc}")
-                time.sleep(5)
-
-    raise RuntimeError(f"All LLM API calls failed across models. Last error: {last_error}")
+    raise RuntimeError(f"All LLM API calls rate-limited or unavailable. Last status: {last_error}")
