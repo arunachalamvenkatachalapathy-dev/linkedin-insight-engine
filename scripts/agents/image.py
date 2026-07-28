@@ -1,14 +1,11 @@
 """
 Image generation agent for EcoPulse.
-Renders scroll-stopping visual assets using high-end AI engines:
-1. OpenAI DALL-E (ChatGPT Image Generator - dall-e-3 / dall-e-2)
-2. Google Imagen 3 (Gemini Image Generator - via GEMINI_API_KEY)
-3. Pollinations FLUX (Free High-Fidelity Photorealistic Engine)
+Exclusively uses official OpenAI DALL-E (ChatGPT) and Google Imagen (Gemini) image models.
+Pollinations FLUX is completely disabled per user preference.
 """
 
 import os
 import json
-import base64
 import logging
 import requests
 import urllib.parse
@@ -26,16 +23,17 @@ if os.path.exists(".env"):
 
 
 def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> dict:
-    """Run the image agent with multi-engine priority."""
+    """
+    Run the image agent using ONLY OpenAI DALL-E (ChatGPT) or Google Imagen (Gemini).
+    """
     headline = copywriter_output.get("headline") or copywriter_output.get("topic_summary") or "Environmental Engineering Infrastructure"
     
     prompt = f"Cinematic wide-angle architectural photograph of high-tech environmental engineering infrastructure for {headline}, photorealistic 8k, crisp architectural editorial photography, natural daylight, sharp focus, no text overlays"
 
     os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
     model_used = None
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
 
-    # Engine 1: OpenAI DALL-E (ChatGPT Image Generator: dall-e-3 then dall-e-2)
+    # Engine 1: OpenAI DALL-E 3 / DALL-E 2 (ChatGPT Image Generator)
     openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if openai_key and not model_used:
         for oai_model in ["dall-e-3", "dall-e-2"]:
@@ -45,7 +43,7 @@ def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> di
                     "model": oai_model,
                     "prompt": prompt[:900],
                     "n": 1,
-                    "size": "1024x1024" if oai_model == "dall-e-3" else "1024x1024"
+                    "size": "1024x1024"
                 }
                 if oai_model == "dall-e-3":
                     payload["quality"] = "hd"
@@ -96,19 +94,8 @@ def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> di
         except Exception as e:
             log.warning(f"Google Imagen 3 failed: {e}")
 
-    # Engine 3: Pollinations FLUX (Free High-Fidelity Engine)
     if not model_used:
-        try:
-            log.info("Attempting image generation with Pollinations FLUX...")
-            flux_url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?model=flux&width=1200&height=630&nologo=true&enhance=true"
-            resp = requests.get(flux_url, headers=headers, timeout=60)
-            if resp.status_code == 200 and len(resp.content) > 10000:
-                with open(out_path, "wb") as f:
-                    f.write(resp.content)
-                model_used = "Pollinations FLUX"
-                log.info("Successfully generated image via Pollinations FLUX")
-        except Exception as e:
-            log.warning(f"Pollinations FLUX failed: {e}")
+        log.error("Image generation failed: Neither OpenAI DALL-E nor Google Imagen 3 produced an image.")
 
     return {
         "agent": "image",
