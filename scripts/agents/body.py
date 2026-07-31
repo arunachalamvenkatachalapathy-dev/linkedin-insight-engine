@@ -31,6 +31,8 @@ RULES:
 - CONCRETE ANCHORS: Include at least one named real-world example, company, regulation, plant type, or framework (e.g. GRI, CSRD, BRSR Core).
 - DE-TEMPLATE: Do NOT use stock transition phrases ("This creates a paradox", "The hidden paradox", "Here is the catch", "This is the classic X-Y conflict"). Vary paragraph length naturally.
 - SPECIFICITY: Avoid generic thought-leader phrases ("dangerous architectural dependency", "digitizing X at a speed Y cannot match"). Explain the actual chemical, mechanical, or operational mechanism.
+- DOUBLE-LINE BREAKS: You MUST separate each paragraph and each item in a list with a double line break (`\\n\\n`).
+- BOLD LEAD-INS: If using a numbered or bulleted list, you MUST begin each item with a bold title (e.g. `**1. Emission Factor Accuracy:** ...`).
 - Do NOT present lateral insights as direct facts — frame as commentary (e.g. 'which suggests...', 'practitioners might look to...')
 - Match the assigned tone and format structure throughout
 - Write multiple substantial paragraphs (2-4 paragraphs minimum)

@@ -18,6 +18,7 @@ Your job: Write ONLY the opening hook/introduction of a LinkedIn post. This is 2
 WORD COUNT TARGET: Write 30-60 words for the header section. This is critical — do not write less than 30 words.
 
 RULES:
+- HOOK OPTIMIZATION: Write a punchy, self-contained first sentence of maximum 140 characters, followed immediately by a double line break (`\\n\\n`) to create an intriguing curiosity gap. This creates a preview that drives high clicks on "...see more".
 - SOURCING RULE: Do NOT invent precise-sounding statistics. If a stat isn't in source facts, frame it qualitatively.
 - CONCRETE ANCHORS: Include named real-world technologies, regulations, or frameworks if present in the brief.
 - DE-TEMPLATE: Do NOT use stock transition phrases like "This creates a paradox" or "Here is the catch".

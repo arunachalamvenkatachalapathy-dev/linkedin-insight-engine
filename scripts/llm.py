@@ -96,10 +96,40 @@ def _generate_dynamic_domain_fallback(system_prompt: str, user_content: str) -> 
 
     clean_title = re.sub(r'[\'"]', '', headline_src)
 
+    # 2. Extract JSON parameters dynamically to guarantee 100% Text-Image alignment
+    funnel_stage = "ToFU"
+    headline_brief = clean_title
+    supporting_facts = [summary_src]
+
+    try:
+        data = json.loads(user_content)
+        if "funnel_stage" in data:
+            funnel_stage = data["funnel_stage"]
+        if "plan" in data and isinstance(data["plan"], dict):
+            funnel_stage = data["plan"].get("funnel_stage", "ToFU")
+        
+        brief = data.get("content_brief", {})
+        idea = brief.get("selected_idea", {})
+        if idea:
+            if "headline" in idea:
+                headline_brief = idea["headline"]
+            if "supporting_facts" in idea:
+                supporting_facts = idea["supporting_facts"]
+    except Exception:
+        # Check with regex
+        stage_match = re.search(r'"funnel_stage":\s*"([^"]+)"', user_content)
+        if stage_match:
+            funnel_stage = stage_match.group(1)
+        headline_match = re.search(r'"headline":\s*"([^"]+)"', user_content)
+        if headline_match:
+            headline_brief = headline_match.group(1)
+
+    clean_title_brief = re.sub(r'[\'"]', '', headline_brief)
+
     # 1. PLANNER AGENT
     if "planner" in sys_head:
         return {
-            "angle": f"Technical engineering breakdown of {clean_title} and its impact on Scope 1-3 GHG accounting & BRSR Core compliance",
+            "angle": f"Technical engineering breakdown of {clean_title_brief} and its impact on Scope 1-3 GHG accounting & BRSR Core compliance",
             "format_name": "Cost vs Compliance Trade-Off",
             "tone_name": "analytical and precise — like an engineer briefing peers",
             "length_band_name": "medium"
@@ -107,17 +137,33 @@ def _generate_dynamic_domain_fallback(system_prompt: str, user_content: str) -> 
 
     # 2. CONTENT AGENT
     if "content agent" in sys_head or "scout" in sys_head:
+        if funnel_stage == "BoFU":
+            facts = [
+                "Situation: Industrial remediation facility required compliance audit alignment.",
+                f"Approach: Deployment of closed-loop recovery: {clean_title_brief}.",
+                f"Metrics: {summary_src}",
+                "Result: Achieved 100% compliance verification and audit readiness."
+            ]
+        elif funnel_stage == "MoFU":
+            facts = [
+                summary_src,
+                "Parameters: Focus on closed-loop energy recovery, volumetric flow rates, and specific deionization telemetry.",
+                "Calculation Framework: ISO 14040/44 Life Cycle Assessment & primary supplier sensor telemetry."
+            ]
+        else:
+            facts = [
+                summary_src,
+                "Compliance Impact: Framework alignment with BRSR Core Core 9 attributes and CSRD ESRS E1.",
+                "Strategic Benefit: Transitioning from secondary proxy factors to primary operational data."
+            ]
+
         return {
             "agent": "content",
-            "topic": clean_title[:60],
+            "topic": clean_title_brief[:60],
             "output": {
                 "selected_idea": {
-                    "headline": clean_title,
-                    "supporting_facts": [
-                        summary_src,
-                        "Primary activity telemetry replaces spend-based EEIO emission factors under GHG Protocol Corporate Value Chain Standard Category 1 & Category 4.",
-                        "BRSR Core 9 attributes mandate third-party reasonable assurance for Scope 1-2 emissions and key Scope 3 supply chain boundaries."
-                    ],
+                    "headline": clean_title_brief,
+                    "supporting_facts": facts,
                     "recency": "Real-time 2026 industry news disclosure",
                     "sources_used": [url_src],
                     "why_this_angle": f"Focuses on practical engineering telemetry, regulatory compliance trade-offs, and Scope 1-3 carbon accounting accuracy."
@@ -130,45 +176,89 @@ def _generate_dynamic_domain_fallback(system_prompt: str, user_content: str) -> 
             }
         }
 
-    # 3. HEADER AGENT
+    # 3. HEADER AGENT (Hook - Curiosity Gap, <140 char cutoff optimization)
     if "header agent" in sys_head:
         header_text = (
-            f"The shift toward primary telemetry in corporate decarbonization is accelerating: {clean_title}.\n\n"
-            f"For sustainability managers and plant engineers, this marks a critical transition from estimated spend-based modeling to verifiable operational data."
+            f"Relying on secondary proxy metrics for industrial compliance creates a massive liability.\n\n"
+            f"Recent disclosure details highlight the shift: {clean_title_brief}.\n\n"
+            f"For plant engineers and compliance directors, this transition mandates direct operational verification."
         )
         return {"header_text": header_text}
 
-    # 4. BODY AGENT
+    # 4. BODY AGENT (Dynamic structure and mobile-friendly double line spacing)
     if "body agent" in sys_head:
-        body_text = (
-            f"Translating this development into core environmental engineering requirements highlights three operational realities:\n\n"
-            f"1. Emission Factor Accuracy: Spend-based EEIO models introduce up to +/- 25% uncertainty in Scope 3 Category 1 reporting. Transitioning to primary supplier telemetry aligns directly with GRI 305 and CSRD ESRS E1 requirements.\n"
-            f"2. Closed-Loop Utility Control: Whether managing high-capacity wastewater treatment beds, Constructed Wetlands, or industrial heating loops, real-time sensor integration prevents compliance breaches before regulatory thresholds are crossed.\n"
-            f"3. BRSR Core & CSRD Assurance: Regulators are increasingly rejecting unverified proxy metrics. Establishing automated data pipelines across supply chain tiers is now a prerequisite for reasonable assurance audits."
-        )
+        if funnel_stage == "BoFU":
+            body_text = (
+                f"Here is a technical case study breakdown of this deployment:\n\n"
+                f"**1. Situation (S):** The industrial facility required operational validation and compliance audit alignment under strict guidelines.\n\n"
+                f"**2. Approach (A):** Plant managers deployed a closed-loop recovery loop: {clean_title_brief}.\n\n"
+                f"**3. Metrics (M):** {supporting_facts[0]}\n\n"
+                f"**4. Result (R):** Achieved 100% compliance verification, reducing operational risk and ensuring audit readiness."
+            )
+        elif funnel_stage == "MoFU":
+            fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Standardized under ISO 14040/44 Life Cycle Assessment and primary sensor inputs, replacing unverified proxy factor models."
+            body_text = (
+                f"Translating this development into plant engineering requirements reveals 3 key operational realities:\n\n"
+                f"**1. Parameter Telemetry:** {supporting_facts[0]}\n\n"
+                f"**2. Calculation Methodologies:** {fact2}\n\n"
+                f"**3. Operational Control:** Establishing direct sensor validation loops prevents compliance breaches before regulatory thresholds are crossed."
+            )
+        else:
+            fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Primary activity data replaces spend-based EEIO emission factors under GHG Protocol Corporate Value Chain Standard Category 1."
+            body_text = (
+                f"Analyzing this shift highlights 3 compliance realities for sustainability leadership:\n\n"
+                f"**1. Framework Alignment:** Aligning directly with BRSR Core Core 9 attributes and CSRD ESRS E1 reporting rules.\n\n"
+                f"**2. Strategic Advantage:** {fact2}\n\n"
+                f"**3. Audit Readiness:** Establishing automated data pipelines prepares the facility for third-party reasonable assurance audits."
+            )
         return {"body_text": body_text}
 
     # 5. FOOTER AGENT
     if "footer agent" in sys_head:
         footer_text = (
-            f"What primary metrics is your team using to validate Scope 3 supplier data this quarter? Share your technical perspective below."
+            f"What primary metrics is your team using to validate {clean_title_brief[:40]} data this quarter? Share your technical perspective below."
         )
         return {
             "footer_text": footer_text,
             "hashtags": ["#EnvironmentalEngineering", "#Sustainability", "#Scope3", "#ESG", "#BRSRCore"]
         }
 
-    # 6. STITCHER AGENT
+    # 6. STITCHER AGENT (Cohesive dynamic assembly)
     if "stitcher" in sys_head:
-        full_post = (
-            f"The shift toward primary telemetry in corporate decarbonization is accelerating: {clean_title}.\n\n"
-            f"For sustainability managers and plant engineers, this marks a critical transition from estimated spend-based modeling to verifiable operational data.\n\n"
-            f"Translating this development into core environmental engineering requirements highlights three operational realities:\n\n"
-            f"1. Emission Factor Accuracy: Spend-based EEIO models introduce up to +/- 25% uncertainty in Scope 3 Category 1 reporting. Transitioning to primary supplier telemetry aligns directly with GRI 305 and CSRD ESRS E1 requirements.\n"
-            f"2. Closed-Loop Utility Control: Whether managing high-capacity wastewater treatment beds or industrial energy loops, real-time sensor integration prevents compliance breaches.\n"
-            f"3. BRSR Core Assurance: Regulators are rejecting unverified proxy metrics. Automated data pipelines across supply chain tiers are now required for reasonable assurance audits.\n\n"
-            f"What primary metrics is your team using to validate Scope 3 supplier data this quarter? Share your technical perspective below."
+        # Dynamically build sections matching the variables passed
+        header_part = (
+            f"Relying on secondary proxy metrics for industrial compliance creates a massive liability.\n\n"
+            f"Recent disclosure details highlight the shift: {clean_title_brief}.\n\n"
+            f"For plant engineers and compliance directors, this transition mandates direct operational verification."
         )
+        if funnel_stage == "BoFU":
+            body_part = (
+                f"Here is a technical case study breakdown of this deployment:\n\n"
+                f"**1. Situation (S):** The industrial facility required operational validation and compliance audit alignment under strict guidelines.\n\n"
+                f"**2. Approach (A):** Plant managers deployed a closed-loop recovery loop: {clean_title_brief}.\n\n"
+                f"**3. Metrics (M):** {supporting_facts[0]}\n\n"
+                f"**4. Result (R):** Achieved 100% compliance verification, reducing operational risk and ensuring audit readiness."
+            )
+        elif funnel_stage == "MoFU":
+            fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Standardized under ISO 14040/44 Life Cycle Assessment and primary sensor inputs, replacing unverified proxy factor models."
+            body_part = (
+                f"Translating this development into plant engineering requirements reveals 3 key operational realities:\n\n"
+                f"**1. Parameter Telemetry:** {supporting_facts[0]}\n\n"
+                f"**2. Calculation Methodologies:** {fact2}\n\n"
+                f"**3. Operational Control:** Establishing direct sensor validation loops prevents compliance breaches before regulatory thresholds are crossed."
+            )
+        else:
+            fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Primary activity data replaces spend-based EEIO emission factors under GHG Protocol Corporate Value Chain Standard Category 1."
+            body_part = (
+                f"Analyzing this shift highlights 3 compliance realities for sustainability leadership:\n\n"
+                f"**1. Framework Alignment:** Aligning directly with BRSR Core Core 9 attributes and CSRD ESRS E1 reporting rules.\n\n"
+                f"**2. Strategic Advantage:** {fact2}\n\n"
+                f"**3. Audit Readiness:** Establishing automated data pipelines prepares the facility for third-party reasonable assurance audits."
+            )
+        footer_part = f"What primary metrics is your team using to validate {clean_title_brief[:40]} data this quarter? Share your technical perspective below."
+
+        full_post = f"{header_part}\n\n{body_part}\n\n{footer_part}"
+
         return {
             "agent": "stitcher",
             "output": {"final_post_text": full_post, "word_count": len(full_post.split())},
@@ -178,15 +268,39 @@ def _generate_dynamic_domain_fallback(system_prompt: str, user_content: str) -> 
 
     # 7. STRATEGIST AGENT
     if "strategist" in sys_head:
-        full_post = (
-            f"The shift toward primary telemetry in corporate decarbonization is accelerating: {clean_title}.\n\n"
-            f"For sustainability managers and plant engineers, this marks a critical transition from estimated spend-based modeling to verifiable operational data.\n\n"
-            f"Translating this development into core environmental engineering requirements highlights three operational realities:\n\n"
-            f"1. Emission Factor Accuracy: Spend-based EEIO models introduce up to +/- 25% uncertainty in Scope 3 Category 1 reporting. Transitioning to primary supplier telemetry aligns directly with GRI 305 and CSRD ESRS E1 requirements.\n"
-            f"2. Closed-Loop Utility Control: Whether managing high-capacity wastewater treatment beds or industrial energy loops, real-time sensor integration prevents compliance breaches.\n"
-            f"3. BRSR Core Assurance: Regulators are rejecting unverified proxy metrics. Automated data pipelines across supply chain tiers are now required for reasonable assurance audits.\n\n"
-            f"What primary metrics is your team using to validate Scope 3 supplier data this quarter? Share your technical perspective below."
+        header_part = (
+            f"Relying on secondary proxy metrics for industrial compliance creates a massive liability.\n\n"
+            f"Recent disclosure details highlight the shift: {clean_title_brief}.\n\n"
+            f"For plant engineers and compliance directors, this transition mandates direct operational verification."
         )
+        if funnel_stage == "BoFU":
+            body_part = (
+                f"Here is a technical case study breakdown of this deployment:\n\n"
+                f"**1. Situation (S):** The industrial facility required operational validation and compliance audit alignment under strict guidelines.\n\n"
+                f"**2. Approach (A):** Plant managers deployed a closed-loop recovery loop: {clean_title_brief}.\n\n"
+                f"**3. Metrics (M):** {supporting_facts[0]}\n\n"
+                f"**4. Result (R):** Achieved 100% compliance verification, reducing operational risk and ensuring audit readiness."
+            )
+        elif funnel_stage == "MoFU":
+            fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Standardized under ISO 14040/44 Life Cycle Assessment and primary sensor inputs, replacing unverified proxy factor models."
+            body_part = (
+                f"Translating this development into plant engineering requirements reveals 3 key operational realities:\n\n"
+                f"**1. Parameter Telemetry:** {supporting_facts[0]}\n\n"
+                f"**2. Calculation Methodologies:** {fact2}\n\n"
+                f"**3. Operational Control:** Establishing direct sensor validation loops prevents compliance breaches before regulatory thresholds are crossed."
+            )
+        else:
+            fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Primary activity data replaces spend-based EEIO emission factors under GHG Protocol Corporate Value Chain Standard Category 1."
+            body_part = (
+                f"Analyzing this shift highlights 3 compliance realities for sustainability leadership:\n\n"
+                f"**1. Framework Alignment:** Aligning directly with BRSR Core Core 9 attributes and CSRD ESRS E1 reporting rules.\n\n"
+                f"**2. Strategic Advantage:** {fact2}\n\n"
+                f"**3. Audit Readiness:** Establishing automated data pipelines prepares the facility for third-party reasonable assurance audits."
+            )
+        footer_part = f"What primary metrics is your team using to validate {clean_title_brief[:40]} data this quarter? Share your technical perspective below."
+
+        full_post = f"{header_part}\n\n{body_part}\n\n{footer_part}"
+
         return {
             "agent": "strategist",
             "output": {"viral_post_text": full_post},
@@ -207,9 +321,9 @@ def _generate_dynamic_domain_fallback(system_prompt: str, user_content: str) -> 
 
     # 11. IMAGE AGENT
     if "visual art director" in sys_head or "image" in sys_head:
-        return {"agent": "image", "output": {"image_prompt": f"Custom Pillow Canvas Graphic Card: {clean_title[:50]}", "model_used": "Pillow Canvas Graphic Card (100% Free & Fast)"}, "image_prompt": f"Custom Pillow Canvas Graphic Card: {clean_title[:50]}", "model_used": "Pillow Canvas Graphic Card (100% Free & Fast)"}
+        return {"agent": "image", "output": {"image_prompt": f"Custom Pillow Canvas Graphic Card: {clean_title_brief[:50]}", "model_used": "Pillow Canvas Graphic Card (100% Free & Fast)"}, "image_prompt": f"Custom Pillow Canvas Graphic Card: {clean_title_brief[:50]}", "model_used": "Pillow Canvas Graphic Card (100% Free & Fast)"}
 
-    return {"status": "success", "topic": clean_title}
+    return {"status": "success", "topic": clean_title_brief}
 
 
 def call_agent(system_prompt: str, user_content: str, use_web_search: bool = False,
