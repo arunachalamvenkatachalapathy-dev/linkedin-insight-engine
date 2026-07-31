@@ -1,159 +1,113 @@
 """
 Image generation and curation agent for EcoPulse.
-Supports:
-1. OpenAI DALL-E 3 (ChatGPT - via OPENAI_API_KEY)
-2. Google Imagen 3 (Gemini - via GEMINI_API_KEY)
-3. Unsplash High-Resolution Real Photography Engine (100% Free, Unlimited, Real 4K Photography)
+Programmatically generates clean, custom, branded LinkedIn visual graphic cards
+using Python's Pillow (PIL) library (Quote2Image / Infographic Card Canvas).
+No generic AI prompts, no Pollinations, no FLUX rate limits. 100% reliable, ultra-fast.
 """
 
 import os
 import json
 import logging
-import requests
-import urllib.parse
-import urllib.request
-import random
+import textwrap
+from datetime import datetime, timezone
+from PIL import Image, ImageDraw, ImageFont
 
 log = logging.getLogger("ecopulse")
 
-# Ensure .env variables are loaded
-if os.path.exists(".env"):
-    with open(".env", "r") as f:
-        for line in f:
-            if "=" in line and not line.strip().startswith("#"):
-                k, v = line.strip().split("=", 1)
-                os.environ[k.strip()] = v.strip()
 
-# Curated High-Resolution 4K Environmental Engineering Photography Collections from Unsplash CDN
-UNSPLASH_COLLECTIONS = {
-    "wetland": [
-        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&h=630&q=80",
-        "https://images.unsplash.com/photo-1518173946687-a4c8a383392e?auto=format&fit=crop&w=1200&h=630&q=80",
-        "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&h=630&q=80"
-    ],
-    "decarbonization": [
-        "https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&h=630&q=80",
-        "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=1200&h=630&q=80",
-        "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1200&h=630&q=80"
-    ],
-    "reporting": [
-        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&h=630&q=80",
-        "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1200&h=630&q=80",
-        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&h=630&q=80"
-    ],
-    "water": [
-        "https://images.unsplash.com/photo-1518173946687-a4c8a383392e?auto=format&fit=crop&w=1200&h=630&q=80",
-        "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&h=630&q=80"
-    ],
-    "default": [
-        "https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?auto=format&fit=crop&w=1200&h=630&q=80",
-        "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&h=630&q=80",
-        "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=1200&h=630&q=80"
+def _get_font(size: int, bold: bool = False):
+    """Load default font with fallback."""
+    font_names = [
+        "arialbd.ttf" if bold else "arial.ttf",
+        "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
+        "SegoeUI-Bold.ttf" if bold else "SegoeUI.ttf"
     ]
-}
+    for font_name in font_names:
+        try:
+            return ImageFont.truetype(font_name, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
+
+
+def generate_linkedin_infographic_card(headline: str, fact_text: str, out_path: str = 'state/latest_image.png') -> str:
+    """
+    Generate a high-end, corporate branded LinkedIn graphic card using Pillow.
+    Dimensions: 1200x630 (standard 16:9 LinkedIn ratio).
+    """
+    os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
+
+    # Canvas dimensions & dark mode theme
+    width, height = 1200, 630
+    img = Image.new('RGB', (width, height), color='#0B132B')
+    draw = ImageDraw.Draw(img)
+
+    # 1. Subtle background grid pattern
+    grid_color = '#162447'
+    for y in range(0, height, 40):
+        draw.line([(0, y), (width, y)], fill=grid_color, width=1)
+    for x in range(0, width, 40):
+        draw.line([(x, 0), (x, height)], fill=grid_color, width=1)
+
+    # 2. Header Brand Pill Box
+    draw.rounded_rectangle([60, 45, 520, 92], radius=10, fill='#059669')
+    font_brand = _get_font(20, bold=True)
+    draw.text((78, 57), "🌿 ECOPULSE  |  ESG & ENGINEERING", fill='#FFFFFF', font=font_brand)
+
+    # 3. Main Post Title (Wrapped)
+    font_title = _get_font(34, bold=True)
+    title_text = headline.strip()
+    if len(title_text) > 95:
+        title_text = title_text[:92] + "..."
+
+    wrapped_title = textwrap.fill(title_text, width=48)
+    draw.text((60, 125), wrapped_title, fill='#F8FAFC', font=font_title)
+
+    # 4. Highlighted Empirical Metric Card Box
+    card_top = 265
+    card_height = 220
+    draw.rounded_rectangle([60, card_top, width - 60, card_top + card_height], radius=16, fill='#1E293B', outline='#10B981', width=2)
+
+    font_badge = _get_font(18, bold=True)
+    draw.text((90, card_top + 25), "KEY EMPIRICAL METRIC / INSIGHT", fill='#10B981', font=font_badge)
+
+    # Wrap metric fact text inside the card box
+    font_fact = _get_font(22, bold=False)
+    clean_fact = fact_text.strip()
+    if len(clean_fact) > 220:
+        clean_fact = clean_fact[:217] + "..."
+    wrapped_fact = textwrap.fill(clean_fact, width=68)
+    draw.text((90, card_top + 65), wrapped_fact, fill='#E2E8F0', font=font_fact)
+
+    # 5. Footer Branding & Category Tags
+    font_footer = _get_font(16, bold=False)
+    today_str = datetime.now(timezone.utc).strftime("%B %Y")
+    footer_text = f"FRAMEWORKS: BRSR Core  •  CSRD ESRS E1  •  GRI Standards  •  GHG Protocol   |   {today_str}"
+    draw.text((60, 545), footer_text, fill='#64748B', font=font_footer)
+
+    img.save(out_path, "PNG")
+    log.info(f"Successfully generated custom Pillow graphic card: {out_path}")
+    return out_path
 
 
 def run(copywriter_output: dict, out_path: str = 'state/latest_image.png') -> dict:
-    """Run the image agent with multi-engine priority."""
-    headline = copywriter_output.get("headline") or copywriter_output.get("topic_summary") or "Environmental Engineering Infrastructure"
-    
-    prompt = f"Cinematic wide-angle architectural photograph of high-tech environmental engineering infrastructure for {headline}, photorealistic 8k, crisp architectural editorial photography, natural daylight, sharp focus, no text overlays"
+    """Run the image agent with custom Pillow graphic card generator."""
+    headline = (
+        copywriter_output.get("headline") or
+        copywriter_output.get("selected_idea", {}).get("headline") or
+        "Senior Environmental Engineering Telemetry & Compliance"
+    )
 
-    os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
-    model_used = None
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    supporting_facts = copywriter_output.get("supporting_facts") or copywriter_output.get("selected_idea", {}).get("supporting_facts", [])
+    fact_text = supporting_facts[0] if supporting_facts else "Primary supplier telemetry reduces emission factor variance from +/-25% down to +/-3% under BRSR Core & CSRD."
 
-    # Engine 1: OpenAI DALL-E 3 (ChatGPT - via OPENAI_API_KEY)
-    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if openai_key and not model_used:
-        for oai_model in ["dall-e-3", "dall-e-2"]:
-            try:
-                log.info(f"Attempting image generation with OpenAI {oai_model} (ChatGPT)...")
-                payload = {
-                    "model": oai_model,
-                    "prompt": prompt[:900],
-                    "n": 1,
-                    "size": "1024x1024"
-                }
-                if oai_model == "dall-e-3":
-                    payload["quality"] = "hd"
-
-                response = requests.post(
-                    "https://api.openai.com/v1/images/generations",
-                    headers={
-                        "Authorization": f"Bearer {openai_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json=payload,
-                    timeout=30
-                )
-                if response.status_code == 200:
-                    data = response.json()
-                    img_url = data['data'][0]['url']
-                    urllib.request.urlretrieve(img_url, out_path)
-                    model_used = f"OpenAI {oai_model} (ChatGPT)"
-                    log.info(f"Successfully generated image via OpenAI {oai_model} (ChatGPT)")
-                    break
-                else:
-                    log.warning(f"OpenAI {oai_model} status {response.status_code}: {response.text[:120]}")
-            except Exception as e:
-                log.warning(f"OpenAI {oai_model} failed: {e}")
-
-    # Engine 2: Google Imagen 3 (Gemini - via GEMINI_API_KEY)
-    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
-    if gemini_key and not model_used:
-        try:
-            from google import genai
-            log.info("Attempting image generation with Google Imagen 3 (Gemini)...")
-            client = genai.Client(api_key=gemini_key)
-            result_img = client.models.generate_images(
-                model='imagen-3.0-generate-002',
-                prompt=prompt,
-                config=dict(
-                    number_of_images=1,
-                    output_mime_type="image/png",
-                    aspect_ratio="16:9"
-                )
-            )
-            if result_img and result_img.generated_images:
-                img_bytes = result_img.generated_images[0].image.image_bytes
-                with open(out_path, 'wb') as f:
-                    f.write(img_bytes)
-                model_used = "Google Imagen 3 (Gemini)"
-                log.info("Successfully generated image via Google Imagen 3 (Gemini)")
-        except Exception as e:
-            log.warning(f"Google Imagen 3 failed: {e}")
-
-    # Engine 3: Unsplash Real High-Resolution Photography Engine (100% Free & Unlimited)
-    if not model_used:
-        try:
-            log.info("Attempting image curation via Unsplash Real Photography Engine...")
-            low_head = headline.lower()
-            category = "default"
-            if any(k in low_head for k in ["wetland", "constructed wetland", "nature-based"]):
-                category = "wetland"
-            elif any(k in low_head for k in ["decarbonization", "energy", "solar", "emissions"]):
-                category = "decarbonization"
-            elif any(k in low_head for k in ["brsr", "issb", "reporting", "esg", "disclosure"]):
-                category = "reporting"
-            elif any(k in low_head for k in ["water", "wastewater", "brine", "leachate"]):
-                category = "water"
-
-            img_url = random.choice(UNSPLASH_COLLECTIONS.get(category, UNSPLASH_COLLECTIONS["default"]))
-            resp = requests.get(img_url, headers=headers, timeout=20)
-            if resp.status_code == 200 and len(resp.content) > 10000:
-                with open(out_path, "wb") as f:
-                    f.write(resp.content)
-                model_used = "Unsplash Real Photography (4K Free)"
-                log.info("Successfully curated 4K photography via Unsplash Real Photography Engine")
-        except Exception as e:
-            log.warning(f"Unsplash curation failed: {e}")
+    generated_path = generate_linkedin_infographic_card(headline, fact_text, out_path)
 
     return {
         "agent": "image",
         "output": {
-            "image_path": out_path if model_used else None,
-            "image_prompt": prompt,
-            "model_used": model_used
+            "image_path": generated_path,
+            "image_prompt": f"Custom Pillow Canvas Graphic Card: {headline}",
+            "model_used": "Pillow Canvas Graphic Card (100% Free & Fast)"
         }
     }
