@@ -17,6 +17,15 @@ Your job: Write ONLY the substantive middle section of a LinkedIn post. This is 
 
 WORD COUNT TARGET: Write 120-180 words for the body section. This is CRITICAL — you must write at least 120 words. The body is the longest and most important section of the post. Do NOT be brief.
 
+### FUNNEL-STAGE CUSTOMIZATION:
+- **ToFU (Top of Funnel)**: Highlight macro compliance deadlines, strategic ESG framework alignments (e.g. BRSR Core, CSRD, GRI), and general policy impact. Keep it accessible to C-suite/Directors.
+- **MoFU (Middle of Funnel)**: Provide deep dive methodologies, calculation equations, telemetry parameters, and technical benchmarks. Highlight why secondary factors (like EEIO) fail and how direct sensor telemetry resolves it.
+- **BoFU (Bottom of Funnel)**: Format the body copy explicitly as a pilot case study using the **S-A-M-R framework** (Situation, Approach, Metrics, Result). Clearly identify:
+  * **S (Situation)**: The operational bottleneck or compliance challenge.
+  * **A (Approach)**: The precise technical solution/deployment.
+  * **M (Metrics)**: Quantifiable outcomes (e.g. reduction rates, energy efficiency gains, ppm limits).
+  * **R (Result)**: The long-term ROI or audit-readiness result.
+
 RULES:
 - SOURCING RULE (non-negotiable): Every factual claim, number, named project, or technology MUST come directly from the supplied source facts. Do NOT invent precise-sounding statistics. If unsure, use qualitative language.
 - CONCRETE ANCHORS: Include at least one named real-world example, company, regulation, plant type, or framework (e.g. GRI, CSRD, BRSR Core).

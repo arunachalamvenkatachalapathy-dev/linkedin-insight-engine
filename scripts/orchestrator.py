@@ -51,6 +51,11 @@ def main():
     topic = random.choice(topics)
     log.info(f"Selected topic: {topic}")
 
+    # Determine funnel stage rotation based on history length
+    stages = ["ToFU", "MoFU", "BoFU"]
+    funnel_stage = stages[len(posted_log) % len(stages)]
+    log.info(f"Active Funnel Stage: {funnel_stage} (ToFU=Frameworks/Macro, MoFU=Benchmarks/Methodology, BoFU=SAMR Case Study/Proof)")
+
     log.info("═══ STEP 0: Initializing Instructor Agent (Quality & Credibility Layer) ═══")
     log.info("Applying Master Quality Directive across all generation, stitching, and auditing phases.")
 
@@ -60,7 +65,7 @@ def main():
         formats_list = list(planner.FORMATS.keys())
         tones_list = list(planner.TONES.keys())
         length_list = list(planner.LENGTH_BANDS.keys())
-        plan_result = planner.run(topic, formats_list, tones_list, length_list, posted_log)
+        plan_result = planner.run(topic, formats_list, tones_list, length_list, posted_log, funnel_stage=funnel_stage)
     except Exception as e:
         if "429" in str(e) or "rate-limited" in str(e).lower():
             log.warning(f"Gemini API quota window limit reached: {e}. Exiting run cleanly.")
@@ -78,12 +83,12 @@ def main():
     tone = planner.TONES.get(tone_name, planner.TONES["analytical"])
     length_band = planner.LENGTH_BANDS.get(length_band_name, planner.LENGTH_BANDS["medium"])
 
-    log.info(f"Planner decided — Angle: {angle} | Format: {format_spec['name']} | Tone: {tone}")
+    log.info(f"Planner decided — Stage: {funnel_stage} | Angle: {angle} | Format: {format_spec['name']} | Tone: {tone}")
 
     # 2. CONTENT AGENT
     log.info("═══ STEP 2: Running Content Agent ═══")
     try:
-        content_result = content.run(topic, posted_log)
+        content_result = content.run(topic, posted_log, funnel_stage=funnel_stage)
     except Exception as e:
         if "429" in str(e) or "rate-limited" in str(e).lower():
             log.warning(f"Gemini API quota window limit reached: {e}. Exiting run cleanly.")
@@ -106,6 +111,7 @@ def main():
         "format_spec": format_spec,
         "tone_name": tone,
         "length_band": length_band,
+        "funnel_stage": funnel_stage
     }
     content_brief = {
         "selected_idea": selected_idea,
@@ -151,7 +157,7 @@ def main():
     log.info("═══ STEP 8: Running Image Agent ═══")
     image_path = None
     try:
-        img_res = image.run(selected_idea, out_path="state/latest_image.png")
+        img_res = image.run(selected_idea, out_path="state/latest_image.png", funnel_stage=funnel_stage)
         image_path = img_res.get("output", {}).get("image_path")
         log.info(f"Image agent result: {img_res.get('output', {}).get('model_used', 'N/A')}")
     except Exception as e:
