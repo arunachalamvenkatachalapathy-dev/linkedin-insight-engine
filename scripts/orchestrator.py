@@ -115,16 +115,17 @@ def main():
     # 3-6. HEADER -> BODY -> FOOTER -> STITCHER -> STRATEGIST
     log.info("═══ STEPS 3-6: Running Generation & Formatting Pipeline ═══")
     try:
-        h_res = header.run(content_brief, plan)
-        b_res = body.run(content_brief, plan)
-        f_res = footer.run(content_brief, plan)
-
+        h_res = header.run(plan, content_brief)
         h_text = h_res.get("output", {}).get("header_text", "")
+
+        b_res = body.run(plan, content_brief, h_text)
         b_text = b_res.get("output", {}).get("body_text", "")
+
+        f_res = footer.run(plan, content_brief, h_text, b_text)
         f_text = f_res.get("output", {}).get("footer_text", "")
         hashtags = f_res.get("output", {}).get("hashtags", [])
 
-        s_res = stitcher.run(h_text, b_text, f_text, plan)
+        s_res = stitcher.run(h_text, b_text, f_text, tone)
         final_post_text = s_res.get("output", {}).get("final_post_text", f"{h_text}\n\n{b_text}\n\n{f_text}")
 
         strat_res = strategist.run(final_post_text, format_spec, tone, length_band)

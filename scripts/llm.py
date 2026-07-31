@@ -25,7 +25,7 @@ if os.path.exists(".env"):
 MODEL = os.environ.get("ECOPULSE_MODEL")
 
 _last_api_call_time = 0.0
-_MIN_GAP_SECONDS = 3
+_MIN_GAP_SECONDS = 0.5
 
 
 def _pace():
