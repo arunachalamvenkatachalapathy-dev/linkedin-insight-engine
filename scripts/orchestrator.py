@@ -128,7 +128,7 @@ def main():
         s_res = stitcher.run(h_text, b_text, f_text, tone)
         final_post_text = s_res.get("output", {}).get("final_post_text", f"{h_text}\n\n{b_text}\n\n{f_text}")
 
-        strat_res = strategist.run(final_post_text, format_spec, tone, length_band)
+        strat_res = strategist.run(final_post_text, topic, angle)
         viral_post_text = strat_res.get("output", {}).get("viral_post_text", final_post_text)
         if viral_post_text:
             final_post_text = viral_post_text
@@ -169,7 +169,7 @@ def main():
         sys.exit(0)
 
     try:
-        import publisher
+        from agents import publisher
         pub_res = publisher.run(final_post_text, image_path=image_path, hashtags=hashtags)
         post_id = pub_res.get("post_id", "simulated")
         log.info(f"✅ Successfully Published to LinkedIn! Post ID: {post_id}")
