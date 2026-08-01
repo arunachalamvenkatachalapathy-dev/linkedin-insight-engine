@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .brand-pill { background-color: var(--tofu-color); }
+    .stage-badge { color: var(--tofu-badge); }
+    .card-box { border-color: rgba(16, 185, 129, 0.4); }
+    .card-tag { color: var(--tofu-badge); }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <div class="brand-pill">ECOPULSE</div>
+    <div class="stage-badge">TOP OF FUNNEL | REGULATORY BRIEFING</div>
+  </div>
+
+  <div class="title-container">
+    <h1 class="main-title">{{ headline }}</h1>
+  </div>
+
+  <div class="card-box">
+    <div class="card-tag">TOP OF FUNNEL  |  EXECUTIVE INSIGHT</div>
+    <p class="card-fact">{{ fact_text }}</p>
+  </div>
+
+  <div class="footer-bar">
+    <div class="frameworks">FRAMEWORKS: BRSR Core Core 9  •  CSRD ESRS E1  •  GRI Standards  •  GHG Protocol</div>
+    <div class="timestamp">{{ date_str }}</div>
+  </div>
+</body>
+</html>

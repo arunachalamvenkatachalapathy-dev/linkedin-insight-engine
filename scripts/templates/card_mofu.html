@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .brand-pill { background-color: var(--mofu-color); }
+    .stage-badge { color: var(--mofu-badge); }
+    .card-box { border-color: rgba(59, 130, 246, 0.4); }
+    .card-tag { color: var(--mofu-badge); }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <div class="brand-pill">ECOPULSE</div>
+    <div class="stage-badge">MIDDLE OF FUNNEL | BENCHMARKS & METHODOLOGY</div>
+  </div>
+
+  <div class="title-container">
+    <h1 class="main-title">{{ headline }}</h1>
+  </div>
+
+  <div class="card-box">
+    <div class="card-tag">ENGINEERING BENCHMARK TELEMETRY</div>
+    <p class="card-fact">{{ fact_text }}</p>
+    
+    <div class="grid-2col">
+      <div class="grid-item">
+        <div class="grid-label">Primary Metric Telemetry</div>
+        <div class="grid-value">±3.0% Primary Telemetry Variance</div>
+      </div>
+      <div class="grid-item">
+        <div class="grid-label">Spend-Based EEIO Proxy</div>
+        <div class="grid-value">±25.0% Model Uncertainty</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div class="frameworks">AUDIT PROTOCOLS: ISO 14064-3  •  GHG Scope 3 Telemetry  •  BRSR Core</div>
+    <div class="timestamp">{{ date_str }}</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .brand-pill { background-color: var(--bofu-color); }
+    .stage-badge { color: var(--bofu-badge); }
+    .card-box { border-color: rgba(245, 158, 11, 0.4); }
+    .card-tag { color: var(--bofu-badge); }
+  </style>
+</head>
+<body>
+  <div class="header-bar">
+    <div class="brand-pill">ECOPULSE</div>
+    <div class="stage-badge">BOTTOM OF FUNNEL | SAMR FIELD CASE STUDY</div>
+  </div>
+
+  <div class="title-container">
+    <h1 class="main-title">{{ headline }}</h1>
+  </div>
+
+  <div class="card-box">
+    <div class="card-tag">VERIFIED PILOT PROOF  |  S-A-M-R FRAMEWORK</div>
+    <p class="card-fact" style="font-size: 18px;">{{ fact_text }}</p>
+    
+    <div class="grid-2col">
+      <div class="grid-item">
+        <div class="grid-label">Situation & Approach</div>
+        <div class="grid-value">Industrial FGD & Scope 3 Primary Data</div>
+      </div>
+      <div class="grid-item">
+        <div class="grid-label">Audit Verification & Result</div>
+        <div class="grid-value">BRSR Core Assurance Verified</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div class="frameworks">FRAMEWORKS: SAMR Pilot Framework  •  Third-Party Assurance  •  BRSR Core</div>
+    <div class="timestamp">{{ date_str }}</div>
+  </div>
+</body>
+</html>
