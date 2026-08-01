@@ -80,16 +80,37 @@ def _generate_dynamic_domain_fallback(system_prompt: str, user_content: str) -> 
 
     # 1. Parse real RSS headlines & summaries from user_content
     rss_matches = re.findall(r"-\s*HEADLINE:\s*([^\n]+)\n\s*SUMMARY:\s*([^\n]+)\n\s*URL:\s*([^\n]+)", user_content)
+    user_content_lower = user_content.lower()
 
+    selected_rss = None
     if rss_matches:
-        raw_head, raw_summ, raw_url = rss_matches[0]
+        for match in rss_matches:
+            head_text = match[0].strip()
+            # If this headline has not already been posted (checked against exclusion log text in user_content)
+            if head_text.lower() not in user_content_lower:
+                selected_rss = match
+                break
+
+    if selected_rss:
+        raw_head, raw_summ, raw_url = selected_rss
         headline_src = raw_head.strip()
         summary_src = raw_summ.strip()
         url_src = raw_url.strip()
     else:
-        # Pick daily rotated technical angle based on day of year
+        # Pick the first fallback daily angle that is NOT present in the posted log history in user_content
+        chosen_angle = None
         day_index = datetime.now(timezone.utc).timetuple().tm_yday % len(FALLBACK_DAILY_ANGLES)
-        top_name, top_fact, top_src = FALLBACK_DAILY_ANGLES[day_index]
+        for i in range(len(FALLBACK_DAILY_ANGLES)):
+            idx = (day_index + i) % len(FALLBACK_DAILY_ANGLES)
+            top_name, top_fact, top_src = FALLBACK_DAILY_ANGLES[idx]
+            if top_name.lower() not in user_content_lower:
+                chosen_angle = FALLBACK_DAILY_ANGLES[idx]
+                break
+
+        if not chosen_angle:
+            chosen_angle = FALLBACK_DAILY_ANGLES[day_index]
+
+        top_name, top_fact, top_src = chosen_angle
         headline_src = f"Engineering Analysis: {top_name}"
         summary_src = top_fact
         url_src = top_src
