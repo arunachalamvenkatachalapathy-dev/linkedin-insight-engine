@@ -177,8 +177,17 @@ def main():
     try:
         from agents import publisher
         pub_res = publisher.run(final_post_text, image_path=image_path, hashtags=hashtags)
-        post_id = pub_res.get("post_id", "simulated")
+        pub_output = pub_res.get("output", {})
+        
+        if pub_output.get("status") == "failed":
+            error_msg = pub_output.get("error", "Unknown publishing error")
+            log.error(f"❌ LinkedIn Publishing Failed: {error_msg}")
+            sys.exit(1)
+
+        post_id = pub_output.get("post_id") or pub_res.get("post_id", "simulated")
+        post_url = f"https://www.linkedin.com/feed/update/{post_id}/" if post_id and post_id != "simulated" else "N/A"
         log.info(f"✅ Successfully Published to LinkedIn! Post ID: {post_id}")
+        log.info(f"🔗 Direct LinkedIn URL: {post_url}")
 
         # Update posted_log
         posted_log.append({
@@ -186,7 +195,8 @@ def main():
             "topic": topic,
             "source_url": selected_idea.get("sources_used", [""])[0] if selected_idea.get("sources_used") else "",
             "date": datetime.now(timezone.utc).isoformat(),
-            "post_id": post_id
+            "post_id": post_id,
+            "post_url": post_url
         })
         os.makedirs("state", exist_ok=True)
         with open(posted_log_path, "w", encoding="utf-8") as f:
