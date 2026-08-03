@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="header">
+    <div class="badge">ECOPULSE</div>
+    <div class="tag">EXECUTIVE COMPLIANCE & TELEMETRY BRIEFING</div>
+  </div>
+
+  <div class="title">{{ headline }}</div>
+
+  <div class="card-container">
+    <div class="metric-card left">
+      <div class="card-label">BASELINE BENCHMARK</div>
+      <div class="card-value">{{ metric_left }}</div>
+    </div>
+    <div class="metric-card right">
+      <div class="card-label">ADVANCED SOLUTION</div>
+      <div class="card-value">{{ metric_right }}</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="frameworks">FRAMEWORKS: BRSR Core • CSRD ESRS E1 • GHG Protocol • GRI Standards</div>
+    <div class="date">{{ date_str }}</div>
+  </div>
+</body>
+</html>
