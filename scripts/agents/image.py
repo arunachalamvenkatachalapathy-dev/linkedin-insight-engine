@@ -1,72 +1,81 @@
 """
-Image generation and curation agent for EcoPulse.
-Generates stunning AI Infographic social graphics matching high-end executive 3D slide visual aesthetics.
-Primary: OpenAI DALL-E 3 / Pollinations AI Infographic Generator.
-Fallback: High-Res Glassmorphic Playwright & PIL Card Engine.
+Image agent for EcoPulse.
+Renders high-resolution 1200x630 Executive Social Graphic Cards.
+Primary: Playwright Headless Chromium HTML5/CSS3 Engine.
+Fallback: High-Res Glassmorphic Executive PIL Card Engine.
 """
 
 import os
-import re
-import json
 import logging
-import urllib.parse
-import requests
+import textwrap
 from pathlib import Path
 from datetime import datetime, timezone
+from jinja2 import Template
 
 log = logging.getLogger("ecopulse")
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 
 
-def generate_dalle_image(prompt: str, out_path: str, api_key: str) -> bool:
-    """Generate high-impact 3D infographic slide using OpenAI DALL-E 3."""
-    try:
-        log.info("Attempting AI Infographic generation via OpenAI DALL-E 3...")
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "dall-e-3",
-            "prompt": prompt,
-            "n": 1,
-            "size": "1792x1024",
-            "quality": "standard"
-        }
-        resp = requests.post("https://api.openai.com/v1/images/generations", headers=headers, json=payload, timeout=60)
-        if resp.status_code == 200:
-            img_url = resp.json()["data"][0]["url"]
-            img_data = requests.get(img_url, timeout=60).content
-            os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
-            with open(out_path, "wb") as f:
-                f.write(img_data)
-            log.info(f"Successfully generated DALL-E 3 AI Infographic: {out_path}")
-            return True
-        else:
-            log.warning(f"DALL-E 3 API error ({resp.status_code}): {resp.text[:150]}")
-    except Exception as exc:
-        log.warning(f"DALL-E 3 exception: {exc}")
-    return False
+def render_html_template(headline: str, fact_text: str, funnel_stage: str = "ToFU") -> str:
+    """Render HTML string from Jinja2 template based on funnel stage."""
+    template_name = f"card_{funnel_stage.lower()}.html"
+    template_path = TEMPLATES_DIR / template_name
+    if not template_path.exists():
+        template_path = TEMPLATES_DIR / "card_tofu.html"
+
+    with open(template_path, "r", encoding="utf-8") as f:
+        template_content = f.read()
+
+    template = Template(template_content)
+    date_str = datetime.now(timezone.utc).strftime("%B %Y")
+    
+    clean_headline = headline.strip()
+    if len(clean_headline) > 90:
+        clean_headline = clean_headline[:87] + "..."
+
+    clean_fact = fact_text.strip()
+    if len(clean_fact) > 200:
+        clean_fact = clean_fact[:197] + "..."
+
+    rendered_html = template.render(
+        headline=clean_headline,
+        fact_text=clean_fact,
+        date_str=date_str
+    )
+    return rendered_html
 
 
-def generate_pollinations_image(prompt: str, out_path: str) -> bool:
-    """Generate high-quality 3D infographic slide using Pollinations AI Engine (Free & Instant)."""
+def generate_playwright_image(html_content: str, out_path: str) -> bool:
+    """Render HTML content to 1200x630 PNG using Playwright Headless Chromium."""
     try:
-        log.info("Attempting AI Infographic generation via Pollinations AI Engine...")
-        encoded_prompt = urllib.parse.quote(prompt)
-        url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1200&height=630&nologo=true&model=flux"
-        resp = requests.get(url, timeout=45)
-        if resp.status_code == 200 and len(resp.content) > 10000:
-            os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
-            with open(out_path, "wb") as f:
-                f.write(resp.content)
-            log.info(f"Successfully generated Pollinations AI Infographic: {out_path}")
-            return True
-        else:
-            log.warning(f"Pollinations AI returned status {resp.status_code}")
+        from playwright.sync_api import sync_playwright
+
+        os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
+        styles_path = (TEMPLATES_DIR / "styles.css").resolve().as_uri()
+
+        # Inject absolute styles URI so Playwright loads CSS properly
+        html_with_styles = html_content.replace(
+            '<link rel="stylesheet" href="styles.css">',
+            f'<link rel="stylesheet" href="{styles_path}">'
+        )
+
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            context = browser.new_context(
+                viewport={"width": 1200, "height": 630},
+                device_scale_factor=2  # High-DPI 2x scale factor for crisp rendering
+            )
+            page = context.new_page()
+            page.set_content(html_with_styles, wait_until="networkidle")
+            page.screenshot(path=out_path, type="png")
+            browser.close()
+
+        log.info(f"Successfully rendered Playwright HTML/CSS graphic card: {out_path}")
+        return True
     except Exception as exc:
-        log.warning(f"Pollinations AI exception: {exc}")
+        log.warning(f"Playwright rendering exception: {exc}")
+
     return False
 
 
@@ -89,23 +98,17 @@ def _get_truetype_font(size: int, bold: bool = False):
 
 def generate_fallback_pil_card(headline: str, fact_text: str, out_path: str, funnel_stage: str = 'ToFU') -> str:
     from PIL import Image, ImageDraw
-    import textwrap
 
     os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
     width, height = 1200, 630
-    img = Image.new('RGB', (width, height), color='#090D16')
+    img = Image.new('RGB', (width, height), color='#080C14')
     draw = ImageDraw.Draw(img)
 
     for y in range(height):
-        r = int(9 + (y / height) * 15)
-        g = int(13 + (y / height) * 22)
-        b = int(22 + (y / height) * 35)
+        r = int(8 + (y / height) * 15)
+        g = int(12 + (y / height) * 22)
+        b = int(20 + (y / height) * 35)
         draw.line([(0, y), (width, y)], fill=(r, g, b))
-
-    for x in range(0, width, 44):
-        draw.line([(x, 0), (x, height)], fill='#162447', width=1)
-    for y in range(0, height, 44):
-        draw.line([(0, y)], fill='#162447', width=1)
 
     badge_colors = {
         'TOFU': ('#059669', '#10B981'),
@@ -122,14 +125,14 @@ def generate_fallback_pil_card(headline: str, fact_text: str, out_path: str, fun
 
     draw.rounded_rectangle([(50, 40), (190, 82)], radius=8, fill=primary_color)
     draw.text((68, 50), "ECOPULSE", fill='#FFFFFF', font=font_badge)
-    draw.text((215, 50), f"{funnel_stage.upper()} | EXECUTIVE TECHNICAL BRIEFING", fill=accent_color, font=font_badge)
+    draw.text((215, 50), f"{funnel_stage.upper()} | EXECUTIVE REGULATORY BRIEFING", fill=accent_color, font=font_badge)
 
     clean_headline = headline.strip()
     wrapped_title = textwrap.fill(clean_headline, width=50)
     draw.text((50, 110), wrapped_title, fill='#FFFFFF', font=font_title)
 
     draw.rounded_rectangle([(50, 240), (width - 50, 540)], radius=18, fill='#1E293B', outline=accent_color, width=2)
-    draw.text((80, 265), f"{funnel_stage.upper()}  |  FIELD TELEMETRY & COMPLIANCE DATA", fill=accent_color, font=font_tag)
+    draw.text((80, 265), f"{funnel_stage.upper()}  |  PRIMARY COMPLIANCE INSIGHT", fill=accent_color, font=font_tag)
 
     clean_fact = fact_text.strip()
     wrapped_fact = textwrap.fill(clean_fact, width=62)
@@ -141,12 +144,13 @@ def generate_fallback_pil_card(headline: str, fact_text: str, out_path: str, fun
     draw.text((width - 170, 585), date_str, fill='#94A3B8', font=font_footer)
 
     img.save(out_path, "PNG")
+    log.info(f"Generated high-res executive PIL graphic card: {out_path}")
     return out_path
 
 
 def run(copywriter_output: dict, out_path: str = 'state/latest_image.png', funnel_stage: str = 'ToFU') -> dict:
     """
-    Run the Image agent to produce a 3D AI Infographic social graphic slide.
+    Run the Image agent using Playwright Headless Chromium & HTML5/CSS3 Templates.
     """
     headline = (
         copywriter_output.get("headline") or
@@ -157,48 +161,20 @@ def run(copywriter_output: dict, out_path: str = 'state/latest_image.png', funne
     supporting_facts = copywriter_output.get("supporting_facts") or copywriter_output.get("selected_idea", {}).get("supporting_facts", [])
     fact_text = supporting_facts[0] if supporting_facts else "Primary supplier telemetry reduces emission factor variance from +/-25% down to +/-3% under BRSR Core & CSRD."
 
-    # Craft detailed prompt matching 3D isometric infographic slide aesthetics
-    ai_prompt = (
-        f"A modern, high-tech digital infographic card for LinkedIn titled '{headline}'. "
-        f"Dark theme aesthetic with deep indigo navy background and glowing cyan and emerald glassmorphic cards. "
-        f"Displays a clean comparison or 3D isometric technology diagram comparing key metrics side-by-side: "
-        f"'{fact_text[:180]}'. "
-        f"Includes glowing 3D isometric rendering of engineering hardware, server racks, or green energy systems, "
-        f"vibrant cyan data graphs, sharp modern sans-serif typography, clean visual hierarchy, hyper-detailed executive presentation slide style, 16:9 ratio."
-    )
+    html_content = render_html_template(headline, fact_text, funnel_stage)
+    success = generate_playwright_image(html_content, out_path)
+    model_used = f"Playwright Headless Chromium ({funnel_stage} HTML/CSS Layout)"
 
-    openai_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not success:
+        log.info("Playwright headless render fallback triggered. Rendering high-res executive PIL card...")
+        generate_fallback_pil_card(headline, fact_text, out_path, funnel_stage)
+        model_used = f"High-Res Executive PIL Card Engine ({funnel_stage} layout)"
 
-    # 1. Try DALL-E 3 if API Key is available
-    if openai_key:
-        if generate_dalle_image(ai_prompt, out_path, openai_key):
-            return {
-                "agent": "image",
-                "output": {
-                    "image_path": out_path,
-                    "image_prompt": ai_prompt,
-                    "model_used": "OpenAI DALL-E 3 AI Infographic Generator"
-                }
-            }
-
-    # 2. Try Pollinations AI Engine (Free & Instant AI Infographic)
-    if generate_pollinations_image(ai_prompt, out_path):
-        return {
-            "agent": "image",
-            "output": {
-                "image_path": out_path,
-                "image_prompt": ai_prompt,
-                "model_used": "Pollinations Flux AI Infographic Generator"
-            }
-        }
-
-    # 3. Fallback to High-Res PIL Card
-    generate_fallback_pil_card(headline, fact_text, out_path, funnel_stage)
     return {
         "agent": "image",
         "output": {
             "image_path": out_path,
-            "image_prompt": ai_prompt,
-            "model_used": "High-Res Executive PIL Card Engine"
+            "image_prompt": f"Playwright Headless Graphic Card: {headline} ({funnel_stage})",
+            "model_used": model_used
         }
     }

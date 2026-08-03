@@ -206,38 +206,38 @@ def _generate_dynamic_domain_fallback(system_prompt: str, user_content: str) -> 
         )
         return {"header_text": header_text}
 
-    # 4. BODY AGENT (Dynamic markdown headers & emoji numbered bullets)
+    # 4. BODY AGENT (Dynamic section headers & emoji numbered bullets)
     if "body agent" in sys_head:
         if funnel_stage == "BoFU":
             body_text = (
-                f"### 🛠️ The Engineering Pivot: S-A-M-R Case Study\n\n"
+                f"🛠️ **THE ENGINEERING PIVOT: S-A-M-R CASE STUDY**\n\n"
                 f"Here is a technical breakdown of this deployment:\n\n"
                 f"1️⃣ **Situation (S):** Legacy monitoring at the industrial facility failed to capture operational variance, risking compliance penalties under BRSR Core and CSRD rules.\n\n"
                 f"2️⃣ **Approach (A):** Engineering teams deployed closed-loop telemetry and direct process optimization: {clean_title_brief}.\n\n"
                 f"3️⃣ **Metrics (M):** {supporting_facts[0]}\n\n"
-                f"### 💡 Key Takeaways for Infrastructure Leaders\n\n"
+                f"💡 **KEY TAKEAWAYS FOR INFRASTRUCTURE LEADERS**\n\n"
                 f"Result: Achieved 100% audit-readiness and verifiable Scope 1-3 assurance."
             )
         elif funnel_stage == "MoFU":
             fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Standardized under ISO 14040/44 Life Cycle Assessment and primary sensor inputs, replacing unverified proxy factor models."
             body_text = (
-                f"### 🛠️ The Engineering Pivot: Operational Breakdown\n\n"
+                f"🛠️ **THE ENGINEERING PIVOT: OPERATIONAL BREAKDOWN**\n\n"
                 f"Translating this development into plant engineering requirements reveals 3 key operational realities:\n\n"
                 f"1️⃣ **Parameter Telemetry:** {supporting_facts[0]}\n\n"
                 f"2️⃣ **Calculation Methodologies:** {fact2}\n\n"
                 f"3️⃣ **Operational Control:** Establishing direct sensor validation loops prevents compliance breaches before regulatory thresholds are crossed.\n\n"
-                f"### 💡 Key Takeaway for Sustainability Leaders\n\n"
+                f"💡 **KEY TAKEAWAY FOR SUSTAINABILITY LEADERS**\n\n"
                 f"The future of industrial compliance belongs to primary, sensor-driven telemetry—not estimated spend multipliers."
             )
         else:
             fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Primary activity data replaces spend-based EEIO emission factors under GHG Protocol Corporate Value Chain Standard Category 1."
             body_text = (
-                f"### 🛠️ The Engineering Pivot: Compliance Strategy\n\n"
+                f"🛠️ **THE ENGINEERING PIVOT: COMPLIANCE STRATEGY**\n\n"
                 f"Analyzing this shift highlights 3 compliance realities for sustainability leadership:\n\n"
                 f"1️⃣ **Framework Alignment:** Aligning directly with BRSR Core Core 9 attributes and CSRD ESRS E1 reporting standards.\n\n"
                 f"2️⃣ **Strategic Advantage:** {fact2}\n\n"
                 f"3️⃣ **Audit Readiness:** Establishing automated data pipelines prepares the facility for third-party reasonable assurance audits.\n\n"
-                f"### 💡 Key Takeaway for ESG & Infrastructure Officers\n\n"
+                f"💡 **KEY TAKEAWAY FOR ESG & INFRASTRUCTURE OFFICERS**\n\n"
                 f"Transitioning from secondary proxy factors to primary operational data reduces inventory uncertainty from +/-25% down to +/-3.2%."
             )
         return {"body_text": body_text}
@@ -265,34 +265,34 @@ def _generate_dynamic_domain_fallback(system_prompt: str, user_content: str) -> 
         )
         if funnel_stage == "BoFU":
             body_part = (
-                f"### 🛠️ The Engineering Pivot: S-A-M-R Case Study\n\n"
+                f"🛠️ **THE ENGINEERING PIVOT: S-A-M-R CASE STUDY**\n\n"
                 f"Here is a technical breakdown of this deployment:\n\n"
                 f"1️⃣ **Situation (S):** Legacy monitoring at the industrial facility failed to capture operational variance, risking compliance penalties under BRSR Core and CSRD rules.\n\n"
                 f"2️⃣ **Approach (A):** Engineering teams deployed closed-loop telemetry and direct process optimization: {clean_title_brief}.\n\n"
                 f"3️⃣ **Metrics (M):** {supporting_facts[0]}\n\n"
-                f"### 💡 Key Takeaways for Infrastructure Leaders\n\n"
+                f"💡 **KEY TAKEAWAYS FOR INFRASTRUCTURE LEADERS**\n\n"
                 f"Result: Achieved 100% audit-readiness and verifiable Scope 1-3 assurance."
             )
         elif funnel_stage == "MoFU":
             fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Standardized under ISO 14040/44 Life Cycle Assessment and primary sensor inputs, replacing unverified proxy factor models."
             body_part = (
-                f"### 🛠️ The Engineering Pivot: Operational Breakdown\n\n"
+                f"🛠️ **THE ENGINEERING PIVOT: OPERATIONAL BREAKDOWN**\n\n"
                 f"Translating this development into plant engineering requirements reveals 3 key operational realities:\n\n"
                 f"1️⃣ **Parameter Telemetry:** {supporting_facts[0]}\n\n"
                 f"2️⃣ **Calculation Methodologies:** {fact2}\n\n"
                 f"3️⃣ **Operational Control:** Establishing direct sensor validation loops prevents compliance breaches before regulatory thresholds are crossed.\n\n"
-                f"### 💡 Key Takeaway for Sustainability Leaders\n\n"
+                f"💡 **KEY TAKEAWAY FOR SUSTAINABILITY LEADERS**\n\n"
                 f"The future of industrial compliance belongs to primary, sensor-driven telemetry—not estimated spend multipliers."
             )
         else:
             fact2 = supporting_facts[1] if len(supporting_facts) > 1 else "Primary activity data replaces spend-based EEIO emission factors under GHG Protocol Corporate Value Chain Standard Category 1."
             body_part = (
-                f"### 🛠️ The Engineering Pivot: Compliance Strategy\n\n"
+                f"🛠️ **THE ENGINEERING PIVOT: COMPLIANCE STRATEGY**\n\n"
                 f"Analyzing this shift highlights 3 compliance realities for sustainability leadership:\n\n"
                 f"1️⃣ **Framework Alignment:** Aligning directly with BRSR Core Core 9 attributes and CSRD ESRS E1 reporting standards.\n\n"
                 f"2️⃣ **Strategic Advantage:** {fact2}\n\n"
                 f"3️⃣ **Audit Readiness:** Establishing automated data pipelines prepares the facility for third-party reasonable assurance audits.\n\n"
-                f"### 💡 Key Takeaway for ESG & Infrastructure Officers\n\n"
+                f"💡 **KEY TAKEAWAY FOR ESG & INFRASTRUCTURE OFFICERS**\n\n"
                 f"Transitioning from secondary proxy factors to primary operational data reduces inventory uncertainty from +/-25% down to +/-3.2%."
             )
 
