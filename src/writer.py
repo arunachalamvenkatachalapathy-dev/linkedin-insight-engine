@@ -1,38 +1,55 @@
 """
 Step 2: Copywriter & 5-Part AI Prompt Engineer Agent
-Generates high-impact formatted LinkedIn post text and constructs the 5-Part Prompt Blueprint for 3D AI Infographic slides.
+Generates clean LinkedIn commentary without raw markdown syntax (using Unicode Bold headers) and constructs the 5-Part Prompt Blueprint for 3D AI Infographic slides.
 """
 
-import json
 import logging
-import requests
-import os
 
 log = logging.getLogger("ecopulse")
 
 
+def to_unicode_bold(text: str) -> str:
+    """
+    Converts plain text to Unicode Sans-Serif Bold characters.
+    LinkedIn does NOT render Markdown **bold**, but natively renders Unicode Bold.
+    """
+    res = []
+    for char in text:
+        if 'A' <= char <= 'Z':
+            res.append(chr(0x1D5D4 + ord(char) - ord('A')))
+        elif 'a' <= char <= 'z':
+            res.append(chr(0x1D5EE + ord(char) - ord('a')))
+        elif '0' <= char <= '9':
+            res.append(chr(0x1D7EC + ord(char) - ord('0')))
+        else:
+            res.append(char)
+    return "".join(res)
+
+
 def generate_post_text(scout_data: dict) -> str:
     """
-    Generates structured, highly readable LinkedIn post text.
+    Generates structured, clean LinkedIn post text without markdown syntax.
     """
     headline = scout_data["headline"]
     metric_left = scout_data["metric_left"]
     metric_right = scout_data["metric_right"]
     summary = scout_data["summary"]
-    source = scout_data["source"]
+
+    header_bold = to_unicode_bold("THE ENGINEERING PIVOT: OPERATIONAL BREAKDOWN")
+    takeaway_bold = to_unicode_bold("KEY TAKEAWAY FOR INFRASTRUCTURE & ESG LEADERS")
+    question_bold = to_unicode_bold("Question for the network:")
 
     post = (
         f"Everyone is talking about energy efficiency in industrial infrastructure.\n\n"
         f"Almost nobody is talking about the core engineering breakthrough in {headline.split(':')[0]}. 💡\n\n"
         f"Here is the operational reality: {summary}\n\n"
-        f"🛠️ **THE ENGINEERING PIVOT: OPERATIONAL BREAKDOWN**\n\n"
-        f"1️⃣ **Baseline Benchmark:** {metric_left}.\n\n"
-        f"2️⃣ **Advanced Technology Solution:** {metric_right}.\n\n"
-        f"3️⃣ **Compliance & Audit Assurance:** Direct telemetry alignment under BRSR Core Core 9 attributes and CSRD ESRS E1 standards replaces unverified spend multipliers.\n\n"
-        f"💡 **KEY TAKEAWAY FOR INFRASTRUCTURE & ESG LEADERS**\n\n"
+        f"🛠️ {header_bold}\n\n"
+        f"1️⃣ Baseline Benchmark: {metric_left}.\n\n"
+        f"2️⃣ Advanced Solution: {metric_right}.\n\n"
+        f"3️⃣ Compliance & Audit Assurance: Direct telemetry alignment under BRSR Core Core 9 attributes and CSRD ESRS E1 standards replaces unverified spend multipliers.\n\n"
+        f"💡 {takeaway_bold}\n\n"
         f"As operational density increases, legacy methods hit physical limits. Sustainability leadership belongs to closed-loop, audit-verified engineering.\n\n"
-        f"---\n\n"
-        f"🤔 **Question for the network:**\n"
+        f"🤔 {question_bold}\n"
         f"How is your engineering team evaluating direct operational telemetry versus spend-based factor estimates this quarter? What is the biggest friction point?\n\n"
         f"Let's discuss below. 👇\n\n"
         f"#Sustainability #CleanTech #ESG #EnvironmentalEngineering #EcoPulse"
@@ -43,7 +60,6 @@ def generate_post_text(scout_data: dict) -> str:
 def construct_5part_ai_prompt(scout_data: dict) -> str:
     """
     Constructs the exact 5-Part AI Prompt Blueprint for 3D Isometric Infographic Slides.
-    Blueprint: [1. TITLE & THEME] + [2. COLOR & AESTHETIC] + [3. 3D ISOMETRIC DIAGRAM] + [4. SIDE-BY-SIDE DATA CARDS] + [5. TYPOGRAPHY & RATIO]
     """
     headline = scout_data["headline"]
     metric_left = scout_data["metric_left"]
