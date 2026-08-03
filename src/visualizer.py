@@ -1,6 +1,7 @@
 """
 Step 3: 3D AI Infographic Slide Generator Agent
-Renders 16:9 3D Isometric Infographic Slides using Google Imagen 3 (imagen-3.0-generate-002).
+EXCLUSIVELY uses Google Imagen 3 (imagen-3.0-generate-002 / gemini-2.5-flash-image) for 16:9 3D Isometric Infographic Slides.
+No other models or fallbacks allowed per strict user directive.
 """
 
 import os
@@ -10,87 +11,89 @@ import requests
 
 log = logging.getLogger("ecopulse")
 
+IMAGEN_ENDPOINTS = [
+    "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent",
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent"
+]
 
-def generate_google_imagen_slide(prompt_blueprint: str, out_path: str, api_key: str) -> bool:
+
+def generate_google_imagen_3_slide(prompt_blueprint: str, out_path: str, api_key: str) -> bool:
     """
-    Generate 16:9 3D Isometric Infographic slide using Google Imagen 3.
+    Generate 16:9 3D Isometric Infographic slide EXCLUSIVELY using Google Imagen 3.
     """
-    log.info("Generating 3D AI Infographic slide via Google Imagen 3...")
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key={api_key}"
-    headers = {"Content-Type": "application/json"}
-    payload = {
-        "instances": [
-            {
-                "prompt": prompt_blueprint
+    log.info("Generating 3D AI Infographic slide EXCLUSIVELY via Google Imagen 3...")
+    
+    for endpoint in IMAGEN_ENDPOINTS:
+        url = f"{endpoint}?key={api_key}"
+        headers = {"Content-Type": "application/json"}
+        
+        if "predict" in endpoint:
+            payload = {
+                "instances": [{"prompt": prompt_blueprint}],
+                "parameters": {"sampleCount": 1, "aspectRatio": "16:9"}
             }
-        ],
-        "parameters": {
-            "sampleCount": 1,
-            "aspectRatio": "16:9",
-            "outputOptions": {
-                "mimeType": "image/png"
+        else:
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {
+                                "text": f"Generate a 16:9 3D isometric visual infographic slide for LinkedIn: {prompt_blueprint}"
+                            }
+                        ]
+                    }
+                ]
             }
-        }
-    }
 
-    try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=90)
-        if resp.status_code == 200:
-            predictions = resp.json().get("predictions", [])
-            if predictions and "bytesBase64Encoded" in predictions[0]:
-                b64_str = predictions[0]["bytesBase64Encoded"]
-                img_data = base64.b64decode(b64_str)
-                os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
-                with open(out_path, "wb") as f:
-                    f.write(img_data)
-                log.info(f"✅ Successfully generated Google Imagen 3 3D Infographic slide: {out_path}")
-                return True
-        log.warning(f"Google Imagen 3 status {resp.status_code}: {resp.text[:140]}")
-    except Exception as exc:
-        log.warning(f"Google Imagen 3 exception: {exc}")
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=90)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                img_data = None
+                
+                # Check predict response
+                predictions = res_json.get("predictions", [])
+                if predictions and "bytesBase64Encoded" in predictions[0]:
+                    img_data = base64.b64decode(predictions[0]["bytesBase64Encoded"])
+                
+                # Check generateContent response
+                candidates = res_json.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    for part in parts:
+                        inline = part.get("inlineData") or part.get("inline_data")
+                        if inline and inline.get("data"):
+                            img_data = base64.b64decode(inline["data"])
+                            break
 
-    return False
+                if img_data:
+                    os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
+                    with open(out_path, "wb") as f:
+                        f.write(img_data)
+                    log.info(f"✅ Successfully generated Google Imagen 3 3D Infographic slide ({endpoint.split('/')[-1]}): {out_path}")
+                    return True
+            log.warning(f"Endpoint {endpoint.split('/')[-1]} status {resp.status_code}: {resp.text[:120]}")
+        except Exception as exc:
+            log.warning(f"Endpoint {endpoint.split('/')[-1]} exception: {exc}")
 
-
-def generate_pil_fallback(scout_data: dict, out_path: str) -> str:
-    """High-Res PIL graphic card fallback."""
-    from PIL import Image, ImageDraw, ImageFont
-
-    os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
-    width, height = 1200, 630
-    img = Image.new('RGB', (width, height), color='#0B132B')
-    draw = ImageDraw.Draw(img)
-
-    for y in range(height):
-        r = int(11 + (y / height) * 15)
-        g = int(19 + (y / height) * 22)
-        b = int(43 + (y / height) * 35)
-        draw.line([(0, y), (width, y)], fill=(r, g, b))
-
-    font_title = ImageFont.load_default()
-    draw.text((60, 50), "ECOPULSE | 3D EXECUTIVE BRIEFING", fill='#10B981', font=font_title)
-    draw.text((60, 110), scout_data['headline'], fill='#FFFFFF', font=font_title)
-    draw.rounded_rectangle([(50, 200), (width - 50, 540)], radius=16, fill='#1E293B', outline='#10B981', width=2)
-    draw.text((80, 240), f"LEFT METRIC: {scout_data['metric_left']}", fill='#3B82F6', font=font_title)
-    draw.text((80, 340), f"RIGHT METRIC: {scout_data['metric_right']}", fill='#10B981', font=font_title)
-
-    img.save(out_path, "PNG")
-    log.info(f"Generated PIL fallback slide: {out_path}")
-    return out_path
+    raise RuntimeError("Failed to generate slide via Google Imagen 3. Please verify your GEMINI_API_KEY in GitHub Secrets.")
 
 
 def render_3d_slide(prompt_blueprint: str, scout_data: dict, out_path: str = "state/latest_slide.png") -> str:
     """
-    Renders 16:9 3D Isometric Infographic Slide via Google Imagen 3.
+    Renders 16:9 3D Isometric Infographic Slide exclusively via Google Imagen 3.
     """
     gemini_key = (
         os.environ.get("GEMINI_API_KEY", "").strip() or
         os.environ.get("GOOGLE_API_KEY", "").strip()
     )
 
-    if gemini_key:
-        if generate_google_imagen_slide(prompt_blueprint, out_path, gemini_key):
-            return out_path
+    if not gemini_key:
+        raise ValueError("GEMINI_API_KEY / GOOGLE_API_KEY secret environment variable is required to generate Google Imagen 3 slides.")
 
-    log.info("Rendering executive PIL graphic card fallback...")
-    return generate_pil_fallback(scout_data, out_path)
+    success = generate_google_imagen_3_slide(prompt_blueprint, out_path, gemini_key)
+    if not success:
+        raise RuntimeError("Google Imagen 3 rendering failed.")
+
+    return out_path
