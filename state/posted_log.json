@@ -334,10 +334,18 @@
     "post_url": "https://www.linkedin.com/feed/update/urn:li:share:7490008927565279232/"
   },
   {
+<<<<<<< HEAD
     "headline": "Perovskite-Silicon Tandem Solar: Breaking the Efficiency Ceiling",
     "topic": "perovskite tandem solar",
     "date": "2026-08-03T12:13:29.812404+00:00",
     "post_id": "simulated",
     "post_url": "N/A"
+=======
+    "headline": "Scope 3 Inventory: Primary Telemetry vs Spend-Based Proxies",
+    "topic": "Scope 1-3 GHG accounting",
+    "date": "2026-08-03T12:04:53.481418+00:00",
+    "post_id": "urn:li:share:7490014827537453056",
+    "post_url": "https://www.linkedin.com/feed/update/urn:li:share:7490014827537453056/"
+>>>>>>> c8158c102b626cb2b5eb0612f1ccaab33a97e3be
   }
 ]
