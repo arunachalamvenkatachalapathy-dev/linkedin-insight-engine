@@ -1,27 +1,27 @@
 """
 Stitcher agent for EcoPulse LinkedIn automation pipeline.
-Assembles the header, body, and footer into one cohesive post.
+Assembles the header, body, and footer into a beautifully formatted, highly engaging LinkedIn post.
 """
 
 import json
 from llm import call_agent
 
-from agents.instructor import QUALITY_CREDIBILITY_DIRECTIVE, clean_stock_transitions
+from agents.instructor import QUALITY_CREDIBILITY_DIRECTIVE
 
 SYSTEM_PROMPT = f"""You are the Stitcher agent for EcoPulse.
 
 INSTRUCTOR MASTER DIRECTIVE:
 {QUALITY_CREDIBILITY_DIRECTIVE}
 
-Your ONLY job: Assemble three separately written sections (header, body, footer) into one cohesive LinkedIn post.
+Your job: Assemble three separately written sections (header, body, footer) into a beautifully formatted, highly engaging LinkedIn post.
 
-CRITICAL RULES:
-1. PRESERVE ALL CONTENT — Do NOT trim, summarize, condense, or remove any sentences from header, body, or footer.
-2. SOURCING RULE: Ensure no unverified numbers were invented.
-3. CONCRETE ANCHORS: Preserve all named companies, regulations, plant types, and frameworks.
-4. DE-TEMPLATE THE RHYTHM: Do NOT introduce stock transition phrases ("This creates a paradox", "The hidden paradox", "Here is the catch", "This is the classic X-Y conflict"). Vary paragraph length naturally.
-5. SPECIFICITY: Avoid generic thought-leader clichés.
-6. The output should read as one natural flowing post — no section headers, no labels.
+CRITICAL FORMATTING & STRUCTURAL REQUIREMENTS:
+1. PRESERVE ALL CONTENT & STRUCTURE — Do NOT trim, summarize, or flatten the post into plain continuous prose.
+2. SECTION HEADERS & EMOJI BULLETS: Retain and enhance all markdown section headers (e.g., `### 🛠️ ...`, `### 📊 ...`, `### 💡 Key Takeaways`), numbered emoji bullets (`1️⃣`, `2️⃣`, `3️⃣`), and bold lead-ins.
+3. DOUBLE LINE BREAKS: You MUST use double line breaks (`\\n\\n`) between every paragraph, bullet point, and section header to guarantee optimal scannability on mobile screens.
+4. SOURCING RULE: Ensure no unverified numbers were invented.
+5. CONCRETE ANCHORS: Preserve all named companies, regulations, plant types, and frameworks.
+6. CTA & HASHTAGS: Ensure the final output ends with a clean discussion prompt (`🤔 Question for the network:...`) and relevant industry hashtags.
 
 Return ONLY valid JSON:
 {{
@@ -34,7 +34,6 @@ Return ONLY valid JSON:
 
 def run(header_text: str, body_text: str, footer_text: str, tone: str) -> dict:
     """Run the Stitcher agent."""
-    # Calculate input word count for reference
     input_words = len(header_text.split()) + len(body_text.split()) + len(footer_text.split())
     
     user_content = json.dumps({
@@ -43,6 +42,6 @@ def run(header_text: str, body_text: str, footer_text: str, tone: str) -> dict:
         "footer_text": footer_text,
         "tone": tone,
         "combined_input_word_count": input_words,
-        "instruction": f"The combined input is {input_words} words. Your output MUST be at least {int(input_words * 0.9)} words. Do NOT trim."
+        "instruction": f"Assemble header, body, and footer into a beautifully formatted LinkedIn post with markdown headers, double line breaks, and emoji bullet points."
     })
     return call_agent(system_prompt=SYSTEM_PROMPT, user_content=user_content)

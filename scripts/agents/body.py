@@ -1,6 +1,6 @@
 """
 Body agent for EcoPulse LinkedIn automation pipeline.
-Writes the substantive middle section for a post.
+Writes the substantive middle section for a post with structured markdown section headers and emoji bullet points.
 """
 
 import json
@@ -13,36 +13,36 @@ SYSTEM_PROMPT = f"""You are the Body agent for EcoPulse.
 INSTRUCTOR MASTER DIRECTIVE:
 {QUALITY_CREDIBILITY_DIRECTIVE}
 
-Your job: Write ONLY the substantive middle section of a LinkedIn post. This is the engineering meat — where the real value lives.
+Your job: Write ONLY the substantive middle section of a LinkedIn post with deep technical depth, structured headers, and clean bullet points.
 
-WORD COUNT TARGET: Write 120-180 words for the body section. This is CRITICAL — you must write at least 120 words. The body is the longest and most important section of the post. Do NOT be brief.
+WORD COUNT TARGET: Write 130-190 words for the body section.
+
+### REQUIRED STRUCTURAL ELEMENTS:
+1. SECTION HEADER: Start with a clear markdown subheader with an emoji, e.g.:
+   `### 🛠️ The Engineering Pivot: [Core Technology / Mechanism]` or `### 🔬 Technical & Regulatory Breakdown`
+2. EXPLANATORY PROSE: Explain the exact physical, chemical, or operational mechanism in 2 short, punchy paragraphs.
+3. NUMBERED EMOJI BULLETS: Include 2-3 structured takeaways using numbered emojis, formatted as:
+   1️⃣ **[Bold Lead-In Title]:** [Detailed explanation with data/telemetry].
+   2️⃣ **[Bold Lead-In Title]:** [Detailed explanation with data/telemetry].
+   3️⃣ **[Bold Lead-In Title]:** [Detailed explanation with data/telemetry].
+4. KEY TAKEAWAY HEADER: Include a takeaway callout header, e.g.:
+   `### 💡 Key Takeaway for Infrastructure & ESG Leaders`
+   followed by 1-2 punchy summary sentences.
 
 ### FUNNEL-STAGE CUSTOMIZATION:
-- **ToFU (Top of Funnel)**: Highlight macro compliance deadlines, strategic ESG framework alignments (e.g. BRSR Core, CSRD, GRI), and general policy impact. Keep it accessible to C-suite/Directors.
-- **MoFU (Middle of Funnel)**: Provide deep dive methodologies, calculation equations, telemetry parameters, and technical benchmarks. Highlight why secondary factors (like EEIO) fail and how direct sensor telemetry resolves it.
-- **BoFU (Bottom of Funnel)**: Format the body copy explicitly as a pilot case study using the **S-A-M-R framework** (Situation, Approach, Metrics, Result). Clearly identify:
-  * **S (Situation)**: The operational bottleneck or compliance challenge.
-  * **A (Approach)**: The precise technical solution/deployment.
-  * **M (Metrics)**: Quantifiable outcomes (e.g. reduction rates, energy efficiency gains, ppm limits).
-  * **R (Result)**: The long-term ROI or audit-readiness result.
+- **ToFU (Top of Funnel)**: Focus on macro compliance deadlines, ESG frameworks (BRSR Core, CSRD ESRS, GRI), and strategic risks.
+- **MoFU (Middle of Funnel)**: Focus on calculation methodologies, telemetry parameters, and technical benchmarks.
+- **BoFU (Bottom of Funnel)**: Format using the **S-A-M-R framework** (Situation, Approach, Metrics, Result) with clear headings.
 
 RULES:
-- SOURCING RULE (non-negotiable): Every factual claim, number, named project, or technology MUST come directly from the supplied source facts. Do NOT invent precise-sounding statistics. If unsure, use qualitative language.
-- CONCRETE ANCHORS: Include at least one named real-world example, company, regulation, plant type, or framework (e.g. GRI, CSRD, BRSR Core).
-- DE-TEMPLATE: Do NOT use stock transition phrases ("This creates a paradox", "The hidden paradox", "Here is the catch", "This is the classic X-Y conflict"). Vary paragraph length naturally.
-- SPECIFICITY: Avoid generic thought-leader phrases ("dangerous architectural dependency", "digitizing X at a speed Y cannot match"). Explain the actual chemical, mechanical, or operational mechanism.
-- DOUBLE-LINE BREAKS: You MUST separate each paragraph and each item in a list with a double line break (`\\n\\n`).
-- BOLD LEAD-INS: If using a numbered or bulleted list, you MUST begin each item with a bold title (e.g. `**1. Emission Factor Accuracy:** ...`).
-- Do NOT present lateral insights as direct facts — frame as commentary (e.g. 'which suggests...', 'practitioners might look to...')
-- Match the assigned tone and format structure throughout
-- Write multiple substantial paragraphs (2-4 paragraphs minimum)
-- The body should flow naturally from the header text provided
+- Separate every section and bullet point with double line breaks (`\\n\\n`).
+- All numbers, named projects, and technologies MUST come directly from source facts.
 
 Return ONLY valid JSON:
 {{
   "agent": "body",
   "output": {{
-    "body_text": "Your 120-180 word body section here..."
+    "body_text": "Your structured body section here..."
   }}
 }}"""
 
@@ -51,10 +51,7 @@ def run(plan: dict, content_brief: dict, header_text: str) -> dict:
     length_band = plan.get("length_band", {})
     min_words = length_band.get("min_words", 155)
     
-    if min_words >= 220:
-        target_words = "140-180 words"
-    else:
-        target_words = "100-130 words"
+    target_words = "140-180 words" if min_words >= 220 else "110-140 words"
 
     user_content = json.dumps({
         "plan": plan,
@@ -63,5 +60,5 @@ def run(plan: dict, content_brief: dict, header_text: str) -> dict:
         "target_word_count_for_body": target_words
     })
     
-    custom_system_prompt = SYSTEM_PROMPT.replace("120-180 words", target_words)
+    custom_system_prompt = SYSTEM_PROMPT.replace("130-190 words", target_words)
     return call_agent(system_prompt=custom_system_prompt, user_content=user_content)

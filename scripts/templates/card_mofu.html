@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <link rel="stylesheet" href="styles.css">
   <style>
-    .brand-pill { background-color: var(--mofu-color); }
+    .brand-pill { background-color: var(--mofu-color); box-shadow: 0 0 25px var(--mofu-glow); }
     .stage-badge { color: var(--mofu-badge); }
-    .card-box { border-color: rgba(59, 130, 246, 0.4); }
+    .card-box { border-color: var(--mofu-badge); box-shadow: 0 0 35px var(--mofu-glow); }
     .card-tag { color: var(--mofu-badge); }
   </style>
 </head>
 <body>
   <div class="header-bar">
     <div class="brand-pill">ECOPULSE</div>
-    <div class="stage-badge">MIDDLE OF FUNNEL | BENCHMARKS & METHODOLOGY</div>
+    <div class="stage-badge">MIDDLE OF FUNNEL | ENGINEERING TELEMETRY DEEP DIVE</div>
   </div>
 
   <div class="title-container">
@@ -21,23 +21,12 @@
   </div>
 
   <div class="card-box">
-    <div class="card-tag">ENGINEERING BENCHMARK TELEMETRY</div>
+    <div class="card-tag">MIDDLE OF FUNNEL  |  TECHNICAL BENCHMARK & METHODOLOGY</div>
     <p class="card-fact">{{ fact_text }}</p>
-    
-    <div class="grid-2col">
-      <div class="grid-item">
-        <div class="grid-label">Primary Metric Telemetry</div>
-        <div class="grid-value">±3.0% Primary Telemetry Variance</div>
-      </div>
-      <div class="grid-item">
-        <div class="grid-label">Spend-Based EEIO Proxy</div>
-        <div class="grid-value">±25.0% Model Uncertainty</div>
-      </div>
-    </div>
   </div>
 
   <div class="footer-bar">
-    <div class="frameworks">AUDIT PROTOCOLS: ISO 14064-3  •  GHG Scope 3 Telemetry  •  BRSR Core</div>
+    <div class="frameworks">BENCHMARKS: ISO 14040/44 LCA  •  Sensor Telemetry  •  Scope 1-3 Activity Data</div>
     <div class="timestamp">{{ date_str }}</div>
   </div>
 </body>

@@ -4,16 +4,16 @@
   <meta charset="UTF-8">
   <link rel="stylesheet" href="styles.css">
   <style>
-    .brand-pill { background-color: var(--bofu-color); }
+    .brand-pill { background-color: var(--bofu-color); box-shadow: 0 0 25px var(--bofu-glow); }
     .stage-badge { color: var(--bofu-badge); }
-    .card-box { border-color: rgba(245, 158, 11, 0.4); }
+    .card-box { border-color: var(--bofu-badge); box-shadow: 0 0 35px var(--bofu-glow); }
     .card-tag { color: var(--bofu-badge); }
   </style>
 </head>
 <body>
   <div class="header-bar">
     <div class="brand-pill">ECOPULSE</div>
-    <div class="stage-badge">BOTTOM OF FUNNEL | SAMR FIELD CASE STUDY</div>
+    <div class="stage-badge">BOTTOM OF FUNNEL | AUDIT PROOF & CASE STUDY</div>
   </div>
 
   <div class="title-container">
@@ -21,23 +21,12 @@
   </div>
 
   <div class="card-box">
-    <div class="card-tag">VERIFIED PILOT PROOF  |  S-A-M-R FRAMEWORK</div>
-    <p class="card-fact" style="font-size: 18px;">{{ fact_text }}</p>
-    
-    <div class="grid-2col">
-      <div class="grid-item">
-        <div class="grid-label">Situation & Approach</div>
-        <div class="grid-value">Industrial FGD & Scope 3 Primary Data</div>
-      </div>
-      <div class="grid-item">
-        <div class="grid-label">Audit Verification & Result</div>
-        <div class="grid-value">BRSR Core Assurance Verified</div>
-      </div>
-    </div>
+    <div class="card-tag">BOTTOM OF FUNNEL  |  S-A-M-R FRAMEWORK CASE STUDY</div>
+    <p class="card-fact">{{ fact_text }}</p>
   </div>
 
   <div class="footer-bar">
-    <div class="frameworks">FRAMEWORKS: SAMR Pilot Framework  •  Third-Party Assurance  •  BRSR Core</div>
+    <div class="frameworks">AUDIT PROOF: Third-Party Assurance  •  BRSR Reasonable Assurance  •  S-A-M-R ROI</div>
     <div class="timestamp">{{ date_str }}</div>
   </div>
 </body>
