@@ -1,20 +1,15 @@
-# Environments
+# Environment & secrets
 .env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Byte-compiled / optimized / DLL files
+*.env
 __pycache__/
-*.py[cod]
-*$py.class
+*.pyc
+.venv/
+env/
 
-# Pytest
-.pytest_cache/
+# State temporary images
+state/*.png
+state/*.jpg
 
-# State data
-data/latest_image.*
-# We want to track data/state.json in git for github actions, so do NOT ignore it here.
+# OS files
+.DS_Store
+Thumbs.db
