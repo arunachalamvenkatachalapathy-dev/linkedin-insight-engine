@@ -1,8 +1,11 @@
 """
 Step 1: News Scout & Data Distiller Agent
-Scouts technical environmental engineering news & topics, and distills them into a headline and 2 contrasting numerical metrics.
+Scouts technical environmental engineering news live from real-time RSS feeds (ESG Today, DownToEarth, Google News)
+and distills them via Gemini API into a headline, summary, and 2 contrasting numerical metrics.
 """
 
+import os
+import json
 import random
 import logging
 import xml.etree.ElementTree as ET
@@ -10,12 +13,12 @@ import requests
 
 log = logging.getLogger("ecopulse")
 
-RSS_FEEDS = [
+LIVE_RSS_FEEDS = [
     "https://www.esgtoday.com/feed/",
     "https://www.downtoearth.org.in/rss/environment"
 ]
 
-TECHNICAL_TOPICS = [
+TECHNICAL_TOPICS_FALLBACK = [
     {
         "headline": "AI Data Centers: The Hidden Water Footprint",
         "topic": "data center liquid cooling",
@@ -59,17 +62,84 @@ TECHNICAL_TOPICS = [
 ]
 
 
+def fetch_live_news_items() -> list:
+    """Fetches real-time environmental news items from live RSS feeds."""
+    news_items = []
+    for feed_url in LIVE_RSS_FEEDS:
+        try:
+            resp = requests.get(feed_url, timeout=10, headers={"User-Agent": "Mozilla/5.0"})
+            if resp.status_code == 200:
+                root = ET.fromstring(resp.content)
+                for item in root.findall(".//item")[:5]:
+                    title = item.findtext("title", "")
+                    link = item.findtext("link", "")
+                    description = item.findtext("description", "")
+                    if title:
+                        news_items.append({"title": title, "link": link, "description": description[:300]})
+        except Exception as e:
+            log.warning(f"Error fetching RSS feed {feed_url}: {e}")
+    return news_items
+
+
+def distill_news_item_with_gemini(news_item: dict, api_key: str) -> dict:
+    """Distills a live news item into headline, summary, and 2 numerical metrics via Gemini API."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    
+    prompt = (
+        f"Distill this environmental news article into a structured technical analysis.\n"
+        f"Article Title: {news_item.get('title')}\n"
+        f"Description: {news_item.get('description')}\n\n"
+        f"Return valid JSON with keys:\n"
+        f"- 'headline': Executive title (max 8 words)\n"
+        f"- 'topic': Short topic key\n"
+        f"- 'metric_left': Baseline metric (e.g. 'Legacy Method: 22% Efficiency')\n"
+        f"- 'metric_right': Advanced metric (e.g. 'New Technology: 33.9% Efficiency')\n"
+        f"- 'summary': 2-sentence technical summary\n"
+        f"- 'source': 'ESG Today & Industry Reports'"
+    )
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.5, "responseMimeType": "application/json"}
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=payload, timeout=20)
+        if resp.status_code == 200:
+            data = resp.json()
+            candidates = data.get("candidates", [])
+            if candidates and "content" in candidates[0]:
+                parts = candidates[0]["content"].get("parts", [])
+                if parts:
+                    return json.loads(parts[0].get("text", ""))
+    except Exception as e:
+        log.warning(f"Gemini news distillation error: {e}")
+
+    return None
+
+
 def scout_topic(posted_log: list) -> dict:
     """
-    Selects a fresh, non-repetitive topic distilled into a headline, summary, and 2 contrasting metrics.
+    Selects a fresh, non-repetitive topic distilled from live RSS feeds or fallback curated data.
     """
-    posted_headlines = {entry.get("headline", "").lower() for entry in posted_log}
-    
-    # Filter out already posted topics
-    available_topics = [t for t in TECHNICAL_TOPICS if t["headline"].lower() not in posted_headlines]
-    
+    posted_headlines = {entry.get("headline", "").lower() for entry in posted_log if entry.get("headline")}
+    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip() or os.environ.get("GOOGLE_API_KEY", "").strip()
+
+    # Try Live RSS News Scouting first
+    if gemini_key:
+        live_news = fetch_live_news_items()
+        for item in live_news:
+            if item.get("title", "").lower() not in posted_headlines:
+                distilled = distill_news_item_with_gemini(item, gemini_key)
+                if distilled and "headline" in distilled:
+                    log.info(f"✅ Scouted live RSS news: '{distilled['headline']}'")
+                    return distilled
+
+    # Fallback to curated non-repetitive list
+    available_topics = [t for t in TECHNICAL_TOPICS_FALLBACK if t["headline"].lower() not in posted_headlines]
     if not available_topics:
-        available_topics = TECHNICAL_TOPICS
+        available_topics = TECHNICAL_TOPICS_FALLBACK
 
     selected = random.choice(available_topics)
     log.info(f"Scout selected topic: '{selected['headline']}'")
