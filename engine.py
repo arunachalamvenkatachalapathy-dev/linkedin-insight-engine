@@ -12,6 +12,10 @@ import sys
 import json
 import logging
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+
+# Load local .env variables automatically if present
+load_dotenv()
 
 from src import scout, writer, visualizer, publisher
 
@@ -25,7 +29,7 @@ log = logging.getLogger("ecopulse")
 def main():
     log.info("═══ Starting EcoPulse Clean 4-Step LinkedIn Engine ═══")
 
-    # Load posted history
+    # Load posted history for deduplication
     posted_log_path = os.path.join("state", "posted_log.json")
     posted_log = []
     if os.path.exists(posted_log_path):
@@ -55,8 +59,8 @@ def main():
     # Save posted log memory
     if pub_res.get("status") in ["published", "dry_run"]:
         posted_log.append({
-            "headline": scout_data["headline"],
-            "topic": scout_data["topic"],
+            "headline": scout_data.get("headline"),
+            "topic": scout_data.get("topic"),
             "date": datetime.now(timezone.utc).isoformat(),
             "post_id": pub_res.get("post_id"),
             "post_url": pub_res.get("post_url")
