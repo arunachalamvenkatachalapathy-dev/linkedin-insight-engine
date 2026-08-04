@@ -1,8 +1,8 @@
 """
 Step 3: 3D AI Infographic Slide Generator Agent
 Primary Engine: Google Imagen 3 (imagen-3.0-generate-002)
-Secondary Engine: Playwright Headless Chromium HTML5/CSS3 Engine
-No abstract or blurry AI generator fallbacks are used.
+Secondary Engine: Playwright Headless Chromium HTML5/CSS3 Engine with Inlined Styles
+Guarantees full-bleed, high-res dark glassmorphic 1200x630 cards without file URL resolution failures.
 """
 
 import os
@@ -48,16 +48,21 @@ def generate_google_imagen_3_slide(prompt_blueprint: str, out_path: str, api_key
 
 
 def generate_playwright_html_slide(scout_data: dict, out_path: str) -> bool:
-    """Render crisp 1200x630 HTML5 glassmorphic slide using Playwright Headless Chromium."""
+    """Render crisp 1200x630 glassmorphic HTML5 slide using Playwright with inlined CSS."""
     try:
         from playwright.sync_api import sync_playwright
 
         log.info("Rendering high-res glassmorphic HTML5 slide via Playwright Headless Chromium...")
         template_path = TEMPLATES_DIR / "slide.html"
-        styles_path = (TEMPLATES_DIR / "styles.css").resolve().as_uri()
+        styles_path = TEMPLATES_DIR / "styles.css"
 
         with open(template_path, "r", encoding="utf-8") as f:
             template_content = f.read()
+
+        css_content = ""
+        if os.path.exists(styles_path):
+            with open(styles_path, "r", encoding="utf-8") as f:
+                css_content = f.read()
 
         template = Template(template_content)
         date_str = datetime.now(timezone.utc).strftime("%B %Y")
@@ -69,25 +74,26 @@ def generate_playwright_html_slide(scout_data: dict, out_path: str) -> bool:
             date_str=date_str
         )
 
-        html_with_styles = html_rendered.replace(
-            '<link rel="stylesheet" href="styles.css">',
-            f'<link rel="stylesheet" href="{styles_path}">'
-        )
+        # Inline CSS directly to bypass local file URI security restrictions in Chromium
+        html_final = html_rendered.replace("/* INLINE_STYLES */", css_content)
 
         os.makedirs(os.path.dirname(out_path) or '.', exist_ok=True)
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-setuid-sandbox", "--allow-file-access-from-files"]
+            )
             context = browser.new_context(
                 viewport={"width": 1200, "height": 630},
                 device_scale_factor=2
             )
             page = context.new_page()
-            page.set_content(html_with_styles, wait_until="networkidle")
+            page.set_content(html_final, wait_until="load")
             page.screenshot(path=out_path, type="png")
             browser.close()
 
-        log.info(f"✅ Successfully rendered Playwright HTML5 slide: {out_path}")
+        log.info(f"✅ Successfully rendered Playwright glassmorphic slide: {out_path} ({os.path.getsize(out_path)} bytes)")
         return True
     except Exception as exc:
         log.warning(f"Playwright rendering error: {exc}")
@@ -109,7 +115,7 @@ def render_3d_slide(prompt_blueprint: str, scout_data: dict, out_path: str = "st
         if generate_google_imagen_3_slide(prompt_blueprint, out_path, gemini_key):
             return out_path
 
-    # 2. Secondary: Playwright High-Res HTML5 Glassmorphic Card
+    # 2. Secondary: Playwright High-Res HTML5 Glassmorphic Card (Inlined CSS)
     if generate_playwright_html_slide(scout_data, out_path):
         return out_path
 
